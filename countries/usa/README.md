@@ -76,7 +76,20 @@ ESTA 발급, 입국심사 시 학회 참석 발언 가이드, CBP One 등 미국
 
 <!-- agent: 가나다순. 한 줄 설명에 (지역, 주요 공항)을 붙이면 검색이 쉽다. -->
 
+- [내슈빌 (Nashville)](nashville.md) — 테네시주, CVPR 2025 개최지.
+- [뉴올리언스 (New Orleans)](new-orleans.md) — 루이지애나주, NeurIPS 2022·2023 개최지.
 - [뉴욕 (New York)](new-york.md) — 미 동부, JFK·LGA·EWR 3공항.
+- [마이애미 (Miami)](miami.md) — 플로리다주, EMNLP 2024 개최지.
+- [샌디에이고 (San Diego)](san-diego.md) — 캘리포니아주, NeurIPS 2025 개최지.
+- [시애틀 (Seattle)](seattle.md) — 워싱턴주, CVPR 2024 개최지.
+- [애틀랜타 (Atlanta)](atlanta.md) — 조지아주, CIKM 2022 개최지.
+- [앨버커키 (Albuquerque)](albuquerque.md) — 뉴멕시코주, NAACL 2025 개최지.
+- [와이콜로아 (Waikoloa)](waikoloa.md) — 하와이주 (Big Island), WACV 2023·2024 개최지.
+- [워싱턴 D.C. (Washington, D.C.)](washington-dc.md) — AAAI 2023, SIGIR 2024 개최지.
+- [투손 (Tucson)](tucson.md) — 애리조나주, WACV 2025 개최지.
+- [피츠버그 (Pittsburgh)](pittsburgh.md) — 펜실베이니아주, UAI 2023 개최지.
+- [필라델피아 (Philadelphia)](philadelphia.md) — 펜실베이니아주, CoLM 2024 개최지.
+- [호놀룰루 (Honolulu)](honolulu.md) — 하와이주 (Oahu), ICML 2023, ICCV 2025 개최지.
 
 ## 7. 변경 이력 (Archive)
 
