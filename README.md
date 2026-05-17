@@ -10,7 +10,7 @@ DAVIAN Lab의 학회/여행 누적 가이드. 출장에서 쌓인 호텔·식당
 
 ## 어디서부터 보면 되나
 
-- **공통 팁** (항공권/짐/비자/통신/정산/학회 준비/안전): [general.md](general.md)
+- **공통 팁** (항공권/공항/항공사/짐/비자/통신/정산/학회 준비/안전): [general.md](general.md)
 - **국가·도시별 가이드**: [countries/README.md](countries/README.md)
 - **새 도시·국가 추가**: [templates/](templates/)에서 복사해 시작
 - **AI 에이전트 운영 매뉴얼**: [AGENTS.md](AGENTS.md)
