@@ -5,5 +5,6 @@
 ## 6. 도시 목록
 
 - [경주 (Gyeongju)](gyeongju.md) — 경상북도, COLING 2022 개최지.
+- [대전 (Daejeon)](daejeon.md) — 대전광역시, KAIST 권역 출장 빈번.
 - [서울 (Seoul)](seoul.md) — 수도권, ICCV 2019 / ICASSP 2024 / CoRL 2025 / ICML 2026 개최지.
 - [제주 (Jeju)](jeju.md) — 제주특별자치도, KDD 2026 개최지.
