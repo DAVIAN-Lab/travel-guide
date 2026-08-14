@@ -28,6 +28,7 @@ H2 섹션 번호와 순서는 고정 (1~9, 그리고 99=Archive).
 - TODO: 라운지 일반론 (Priority Pass·신용카드 라운지·항공사 lounge alliance).
 - TODO: 면세점 일반론 (인터넷 면세점 활용, 한국 vs 외국 면세점 가격 비교).
 - TODO: 보안검색·환승 일반 (액체 100ml·전자기기 별도·환승 최소시간).
+- **긴 경유 때 공항 호텔 대실 (day use)** — 1박 하지 않고 몇 시간만 빌려 쉬는 방식. [dayuse.com](https://www.dayuse.com/)에서 공항 인근 호텔을 시간 단위로 예약할 수 있음. 장거리 경유(10시간 이상)에서 체력 회복에 유용. **현장 결제만 가능한 경우가 있으니 연구비 카드를 반드시 챙길 것.** — 조영우 (2026.04)
 
 ## 3. 항공사
 
@@ -42,6 +43,15 @@ H3 아래 최신 후기 1~2개만. 3개 넘기면 가장 오래된 것을 ## 99.
 
 - **외부 참고**: [Skytrax World Airline Awards 2025](https://skytraxratings.com/qatar-airways-named-worlds-best-airline-at-2025-world-airline-awards) — 글로벌 항공사 순위·평가. 자체 후기 작성 시 객관적 비교 기준으로 참고. 연간 갱신이므로 최신 연도는 [skytraxratings.com](https://skytraxratings.com/)에서 확인.
   - **2025 Top 10 (Skytrax 기준)**: 1. Qatar Airways · 2. Singapore Airlines · 3. Cathay Pacific · 4. Emirates · 5. ANA All Nippon Airways · 6. Turkish Airlines · 7. Korean Air · 8. Air France · 9. Japan Airlines · 10. Hainan Airlines
+
+### [에어프레미아 (Air Premia, YP)](https://www.airpremia.com/)
+
+- 인천–뉴욕(JFK) 왕복으로 이용. 브라질행 경유 루트의 첫 구간으로 썼고 특별한 문제는 없었음(항공사 자체에 대한 상세 평가는 아직 없음). — 조영우 (ICLR 2026.04 · ICN-JFK 왕복)
+
+### [라탐 항공 (LATAM Airlines, LA)](https://www.latamairlines.com/)
+
+- 델타 코드쉐어로 발권. 출발이 지연돼 연결편을 놓칠 뻔했으나, 놓칠 승객이 많았는지 연결편도 그에 맞춰 늦게 출발해 결국 놓치지 않음. — 조영우 (ICLR 2026.04 · JFK-GIG, 산티아고 경유)
+- 돈 주고 산 비상구 좌석이 사전 통보 없이 다른 좌석으로 바뀌어 있었음. 탑승 후 항의하니 원래 좌석으로 되돌려 줌 — **유료 좌석은 탑승 전 배정을 다시 확인하고, 바뀌었으면 현장에서 바로 요구할 것.** — 조영우 (ICLR 2026.04 · JFK-GIG, 산티아고 경유)
 
 ## 4. 짐·패킹
 
