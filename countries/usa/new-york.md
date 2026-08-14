@@ -40,17 +40,17 @@
 공항 후기가 3개를 넘기면 가장 오래된 것을 H4와 함께 ## 10. 변경 이력 > ### 공항 — 옛 후기로 이동.
 -->
 
-### [존 F. 케네디 국제공항 (JFK)](https://maps.app.goo.gl/jfk)
+### [존 F. 케네디 국제공항 (JFK)](https://www.google.com/maps/search/John+F.+Kennedy+International+Airport)
 
 - TODO: 시내 이동 (AirTrain + 지하철 vs 우버 vs 옐로우캡 정액제 $70 + 팁).
 - TODO: 라운지·시간 보내기.
 
-### [라과디아 공항 (LGA)](https://maps.app.goo.gl/lga)
+### [라과디아 공항 (LGA)](https://www.google.com/maps/search/LaGuardia+Airport)
 
 - TODO: 시내 이동 (M60 SBS, 우버).
 - TODO: 라운지·시간 보내기.
 
-### [뉴어크 리버티 국제공항 (EWR)](https://maps.app.goo.gl/ewr)
+### [뉴어크 리버티 국제공항 (EWR)](https://www.google.com/maps/search/Newark+Liberty+International+Airport)
 
 - TODO: 시내 이동 (AirTrain + NJ Transit, 우버).
 - TODO: 라운지·시간 보내기.
