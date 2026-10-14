@@ -282,6 +282,7 @@ function decorate(state) {
         const item = {
           section: sec?.num ?? null, sectionTitle: sec?.title ?? '', archive: !!sec?.archive,
           place: place?.name ?? '', sub, line: line(t), depth: listDepth, top: listDepth === 1 && quoteDepth === 0,
+          anchor: place?.slug || sec?.slug || '', at: i,
           kind: 'other', text: '', head: '', hearsay: false, tag: null, link: null,
         };
         if (p?.type === 'paragraph_open' && inline?.type === 'inline') {
@@ -405,6 +406,15 @@ function renderParts(tokens, doc, env) {
   const pre = h1 >= 0 ? [...tokens.slice(0, h1), ...tokens.slice(h1 + 3, preEnd)] : tokens.slice(0, preEnd);
   doc.preHtml = md.renderer.render(pre, md.options, env);
   doc.intro = pre.filter((t) => t.type === 'inline').map((t) => inlineText(t)).join(' ');
+  // 꼬리표 항목은 학회 상세 화면에 원문 그대로 다시 쓰려고 HTML을 따로 남긴다.
+  for (const it of doc.tags) {
+    let depth = 0, end = it.at;
+    for (let j = it.at; j < tokens.length; j++) {
+      if (tokens[j].type === 'list_item_open') depth++;
+      else if (tokens[j].type === 'list_item_close' && --depth === 0) { end = j; break; }
+    }
+    it.html = md.renderer.render(tokens.slice(it.at + 1, end), md.options, env);
+  }
   starts.forEach((s, k) => {
     doc.sections[k].headHtml = md.renderer.render(tokens.slice(s, s + 3), md.options, env);
     doc.sections[k].bodyHtml = md.renderer.render(tokens.slice(s + 3, starts[k + 1] ?? tokens.length), md.options, env);

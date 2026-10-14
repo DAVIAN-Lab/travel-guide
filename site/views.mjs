@@ -1,6 +1,7 @@
 // 화면. 모든 함수는 { html, title, mount } 를 돌려준다. 문자열 조립은 html``(자동 이스케이프)로만.
 import { html, raw, str } from './html.mjs';
 import { REPO, pageHref, latest, tagEdition, slugify } from './parse.mjs';
+import { search } from './search.mjs';
 
 const SITE = 'DAVIAN 출장 가이드';
 const editUrl = (doc) => `${REPO}/edit/main/${doc.path}`;
@@ -68,6 +69,15 @@ function mountShell(root, ctx) {
   });
   document.body.classList.remove('drawer-open');
   root.querySelector('.reload')?.addEventListener('click', () => ctx.reload());
+  // 입력할 때마다 결과만 바꾼다 (입력창은 그대로라 포커스·한글 조합이 유지된다).
+  const form = root.querySelector('form.search');
+  const input = form?.querySelector('input');
+  input?.addEventListener('input', () => ctx.onSearch(input.value, false));
+  input?.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+    ctx.onSearch(input.value, true);
+  });
+  form?.addEventListener('submit', (e) => e.preventDefault());
   for (const b of root.querySelectorAll('button[data-copy]')) {
     b.addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(b.dataset.copy); b.classList.add('done'); }
@@ -80,9 +90,9 @@ function mountShell(root, ctx) {
 
 export function page(site, r, ctx) {
   let v;
-  if (r.q) v = { title: `검색: ${r.q}`, main: notReady('검색은 다음 단계에서 붙습니다.'), opts: {} };
+  if (r.searching) v = { title: r.q ? `검색: ${r.q}` : '검색', main: raw(searchMain(site, r.q)), opts: {} };
   else if (!r.p) v = home(site);
-  else if (r.p === 'conferences') v = { title: '학회', main: notReady('학회 목록은 다음 단계에서 붙습니다.'), opts: { tab: 'conferences' } };
+  else if (r.p === 'conferences') v = r.e ? editionPage(site, r.e) : conferences(site);
   else if (site.byId.has(r.p) && r.p !== 'countries') v = docPage(site, site.byId.get(r.p));
   else v = { title: '없는 페이지', main: html`<p>"${r.p}" 페이지가 없습니다. <a href="./">홈으로</a></p>`, opts: {} };
   return {
@@ -90,10 +100,6 @@ export function page(site, r, ctx) {
     html: shell(site, r, ctx, v.main, v.opts),
     mount: (root) => { mountShell(root, ctx); v.mount?.(root); },
   };
-}
-
-function notReady(msg) {
-  return html`<p class="muted">${msg}</p>`;
 }
 
 // ---------- 홈 ----------
@@ -239,4 +245,90 @@ function docPage(site, doc) {
     ${sections(doc, countryFacts(doc))}
   </article>`;
   return { title, main, opts: { current: doc.id, tab: doc.kind === 'general' ? 'general' : '' } };
+}
+
+// ---------- 검색 ----------
+
+const KIND = { doc: '페이지', place: '장소', section: '섹션', row: '체크리스트', item: '후기·팁' };
+
+export function searchMain(site, q) {
+  if (!q.trim()) {
+    return str(html`<section class="search-page"><h1>검색</h1>
+      <p class="muted">도시·섹션·장소·체크리스트·후기 문장을 모두 찾습니다. 예:
+      ${['교통카드', '리우 숙소', '비엔나', '브라질 콘센트', 'bangalo'].map((x, i) => html`${i ? ' · ' : ''}<a href="?q=${encodeURIComponent(x)}">${x}</a>`)}</p></section>`);
+  }
+  const { total, results } = search(site, q);
+  return str(html`<section class="search-page">
+    <h1>"${q}" 검색 결과 ${total}개</h1>
+    ${total > results.length ? html`<p class="muted">앞의 ${results.length}개만 보여 줍니다. 검색어를 더 붙여 보세요.</p>` : ''}
+    ${total ? '' : html`<p class="muted">찾지 못했습니다. 한 단어로 줄이거나 영어 이름으로 찾아보세요.</p>`}
+    <ul class="results">${results.map((x) => html`<li class="result ${x.kind}">
+      <a class="hit" href="${x.href}"><span class="kind">${KIND[x.kind]}</span> <b>${x.title || x.text.slice(0, 60)}</b></a>
+      ${x.gmap ? html` <a class="gmap" href="${x.gmap}" target="_blank" rel="noopener">${x.gmapLabel}</a>` : ''}
+      <span class="crumbs">${[...x.crumbs, x.where || x.sub || ''].filter(Boolean).join(' › ')}</span>
+      ${x.kind === 'item' || x.kind === 'row' ? html`<span class="snip">${x.text.length > 160 ? `${x.text.slice(0, 160)}…` : x.text}</span>` : ''}
+    </li>`)}</ul></section>`);
+}
+
+// ---------- 학회 ----------
+
+// 회차 = 도시 주석의 (학회, 연도) ∪ 꼬리표의 (학회, 연도).
+function editionsOf(site) {
+  const map = new Map();
+  const get = (series, year) => {
+    const key = `${series} ${year}`;
+    if (!map.has(key)) map.set(key, { key, series, year, places: [], tags: [] });
+    return map.get(key);
+  };
+  for (const e of site.editions) get(e.series, e.year).places.push(e);
+  for (const t of site.tags) if (t.tag.conf) get(t.tag.conf, t.tag.year).tags.push(t);
+  return [...map.values()];
+}
+
+function editionLink(ed, withYear) {
+  const where = ed.places.map((p) => shortName(p.doc)).join('·') || '장소 미상';
+  const label = withYear ? html`<b>${ed.year}</b> ${where}` : html`<b>${ed.series}</b> ${where}`;
+  const href = ed.tags.length ? `?p=conferences&e=${encodeURIComponent(ed.key)}` : ed.places[0] ? pageHref(ed.places[0].doc.id) : '';
+  return href ? html`<a href="${href}" class="${ed.tags.length ? 'has' : ''}">${label}${countBadge(ed.tags.length)}</a>` : html`<span>${label}</span>`;
+}
+
+function conferences(site) {
+  const eds = editionsOf(site);
+  const years = [...new Set(eds.map((e) => e.year))].sort((a, b) => b - a);
+  const series = [...new Set(eds.map((e) => e.series))].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
+  const main = html`<section class="confs-page">
+    <h1>학회</h1>
+    <p class="muted">${site.stats.editions}회 · ${site.stats.series}개 학회. 후기가 있는 회차(●)는 후기를 모아 보여 주고, 나머지는 개최 도시로 갑니다.</p>
+    <p class="jump"><a href="#연도별">연도별</a> · <a href="#학회별">학회별</a></p>
+    <h2 id="연도별">연도별</h2>
+    <dl class="by">${years.map((y) => html`<dt>${y}</dt><dd><ul class="chips">${eds.filter((e) => e.year === y).sort((a, b) => a.series.localeCompare(b.series)).map((e) => html`<li>${editionLink(e, false)}</li>`)}</ul></dd>`)}</dl>
+    <h2 id="학회별">학회별</h2>
+    <dl class="by">${series.map((s) => html`<dt>${s}</dt><dd><ul class="chips">${eds.filter((e) => e.series === s).sort((a, b) => b.year - a.year).map((e) => html`<li>${editionLink(e, true)}</li>`)}</ul></dd>`)}</dl>
+  </section>`;
+  return { title: '학회', main, opts: { tab: 'conferences' } };
+}
+
+function editionPage(site, key) {
+  const ed = editionsOf(site).find((e) => e.key === key);
+  if (!ed) return { title: key, main: html`<p>"${key}" 회차를 찾지 못했습니다. <a href="?p=conferences">학회 목록</a></p>`, opts: { tab: 'conferences' } };
+  const groups = [];
+  for (const t of ed.tags) {
+    let g = groups.find((x) => x.doc === t.doc);
+    if (!g) groups.push(g = { doc: t.doc, items: [] });
+    g.items.push(t);
+  }
+  groups.sort((a, b) => b.items.length - a.items.length);
+  const docName = (d) => (d.kind === 'country' ? `${shortName(d)} 국가 공통` : shortName(d));
+  const main = html`<article class="edition">
+    <nav class="crumb"><a href="?p=conferences">학회</a> › ${ed.key}</nav>
+    <h1>${ed.key}</h1>
+    ${ed.places.map((p) => html`<p class="confs">${p.months ? `${p.months}월 · ` : ''}<a href="${pageHref(p.doc.id)}">${shortName(p.doc)}</a>${p.venue ? ` · ${p.venue}` : ''}</p>`)}
+    <p class="meta">후기 ${ed.tags.length}개${groups.length > 1 ? `: ${groups.map((g) => `${docName(g.doc)} ${g.items.length}`).join(' · ')}` : ''}</p>
+    ${groups.map((g) => html`<section class="sec">
+      <h2><a href="${pageHref(g.doc.id)}">${docName(g.doc)}</a> <span class="n">●${g.items.length}</span></h2>
+      <ul>${g.items.map((t) => html`<li class="${t.hearsay ? 'hearsay' : ''}">${raw(t.html || '')}
+        <a class="where" href="${pageHref(g.doc.id, t.anchor ? `#${t.anchor}` : '')}">${[t.sectionTitle, t.place].filter(Boolean).join(' › ')}</a></li>`)}</ul>
+    </section>`)}
+  </article>`;
+  return { title: ed.key, main, opts: { tab: 'conferences' } };
 }

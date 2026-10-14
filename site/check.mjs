@@ -3,6 +3,7 @@ import {
   parseDoc, slugify, slugger, blankComments, TAG_RE, parseConferences, rewriteHref, loadSite, geoProblems, placeKey, REPO,
 } from './parse.mjs';
 import { html, str } from './html.mjs';
+import { norm, jamo } from './search.mjs';
 
 const ROOT = new URL('../', import.meta.url);
 const out = document.getElementById('out');
@@ -89,6 +90,9 @@ const tests = [
   ['링크: 국가 목록은 홈', () => eq(rewriteHref('countries/README.md', 'general.md').href, './')],
   ['링크: 외부 주소는 그대로', () => eq(rewriteHref('https://www.dayuse.com/', 'general.md'), { href: 'https://www.dayuse.com/', external: true })],
   ['장소 좌표 키는 쿼리를 뗀다', () => eq(placeKey('https://maps.app.goo.gl/abc?g_st=ic'), 'https://maps.app.goo.gl/abc')],
+  ['검색: 악센트·대소문자·공백 무시', () => eq(norm('Bangalô  Restaurante'), 'bangalorestaurante')],
+  ['검색: 입력 중인 글자(칻·ㅋ)도 맞는다', () => { yes(jamo('교통카드').includes(jamo('교통칻'))); yes(jamo('교통카드').includes(jamo('교통ㅋ'))); }],
+  ['검색: 겹자모 분해', () => eq([jamo('ㅘ'), jamo('왜'), jamo('닭')], ['ㅗㅏ', 'ㅇㅗㅐ', 'ㄷㅏㄹㄱ'])],
 ];
 
 function runTests() {

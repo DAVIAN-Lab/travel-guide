@@ -24,13 +24,16 @@ function route() {
   const u = new URL(location.href);
   let hash = u.hash.slice(1);
   try { hash = decodeURIComponent(hash); } catch { /* 그대로 */ }
-  return { p: u.searchParams.get('p') || '', e: u.searchParams.get('e') || '', q: u.searchParams.get('q') || '', hash };
+  return {
+    p: u.searchParams.get('p') || '', e: u.searchParams.get('e') || '', q: u.searchParams.get('q') || '',
+    searching: u.searchParams.has('q'), hash,
+  };
 }
 
 function render() {
   if (!site) return;
   const r = route();
-  const v = views.page(site, r, { deployed, reload });
+  const v = views.page(site, r, { deployed, reload, onSearch });
   app.innerHTML = v.html;
   document.title = v.title ? `${v.title} · DAVIAN 출장 가이드` : 'DAVIAN 출장 가이드';
   v.mount?.(app);
@@ -59,6 +62,30 @@ export function navigate(href, { replace = false } = {}) {
   try { history[replace ? 'replaceState' : 'pushState']({}, '', to); } catch { location.href = to; return; }
   if (same && to.hash) { jumpTo(route().hash, true); return; }
   render();
+}
+
+// 검색창 입력: 결과 영역만 바꾸고, 주소는 첫 입력에 한 번 push한 뒤 잠깐 멈췄을 때 replace한다
+// (Safari는 replaceState를 30초에 100번 넘게 부르면 막는다).
+let searchTimer = 0, urlTimer = 0;
+function onSearch(q, now) {
+  clearTimeout(searchTimer);
+  const run = () => {
+    const main = document.getElementById('main');
+    if (!main) return;
+    const url = `?q=${encodeURIComponent(q)}`;
+    if (!route().searching) {
+      saveScroll();
+      try { history.pushState({}, '', url); } catch { /* 무시 */ }
+      for (const a of document.querySelectorAll('.tabs a, .tree a')) a.removeAttribute('aria-current');
+    } else {
+      clearTimeout(urlTimer);
+      urlTimer = setTimeout(() => { try { history.replaceState({}, '', url); } catch { /* 무시 */ } }, 400);
+    }
+    main.innerHTML = views.searchMain(site, q);
+    document.title = `${q ? `검색: ${q}` : '검색'} · DAVIAN 출장 가이드`;
+    window.scrollTo(0, 0);
+  };
+  if (now) run(); else searchTimer = setTimeout(run, 120);
 }
 
 async function reload() {
