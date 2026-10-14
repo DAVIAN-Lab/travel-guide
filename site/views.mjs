@@ -35,7 +35,7 @@ function tree(site, current) {
       <li>${row(ct.entry.id, ct.entry.ko, ct.doc?.tags.length)}</li>`)}</ul></li>`)}</ul></nav>`;
 }
 
-function shell(site, r, ctx, main, { current = '', tab = '' } = {}) {
+function shell(site, r, ctx, main, { current = '', tab = '', wide = false } = {}) {
   const nav = (href, label, key) => html`<a href="${href}"${raw(tab === key ? ' aria-current="page"' : '')}>${label}</a>`;
   return str(html`
 <header class="top">
@@ -49,7 +49,7 @@ function shell(site, r, ctx, main, { current = '', tab = '' } = {}) {
 </header>
 <div class="layout">
   <aside id="drawer" class="drawer"><nav class="drawer-tabs" aria-label="메뉴">${nav('./', '지도', 'home')}${nav('?p=general', '공통 팁', 'general')}${nav('?p=conferences', '학회', 'conferences')}</nav>${tree(site, current)}</aside>
-  <main id="main">${main}</main>
+  <main id="main" class="${wide ? 'wide' : ''}">${main}</main>
 </div>
 <footer class="foot">
   <a href="${REPO}">GitHub 원문</a>
@@ -146,7 +146,7 @@ function home(site) {
       slot.innerHTML = str(html`<p class="muted">지도를 불러오지 못했습니다 (${e.message}).</p>`);
     }), 0);
   };
-  return { title: '', main, mount, opts: { tab: 'home' } };
+  return { title: '', main, mount, opts: { tab: 'home', wide: true } };
 }
 
 // ---------- 문서 (도시·국가·공통 팁) ----------
