@@ -41,7 +41,7 @@ H3 아래 최신 후기 1~2개만. 3개가 되면 가장 오래된 것을 ## 99.
 외부 참고 링크(Skytrax 등)와 연간 Top 10 예시는 섹션 상단에 두고, 자체 누적 후기는 그 아래 H3 per 항공사로.
 -->
 
-- **외부 참고**: [Skytrax World Airline Awards 2025](https://skytraxratings.com/qatar-airways-named-worlds-best-airline-at-2025-world-airline-awards) — 글로벌 항공사 순위·평가. 자체 후기 작성 시 객관적 비교 기준으로 참고. 연간 갱신이므로 최신 연도는 [skytraxratings.com](https://skytraxratings.com/)에서 확인.
+- **외부 참고**: [Skytrax World Airline Awards 2025](https://skytraxratings.com/qatar-airways-named-worlds-best-airline-at-2025-world-airline-awards). 전 세계 항공사의 순위와 평가를 모은 자료다. 후기를 쓸 때 객관적인 비교 기준으로 참고한다. 해마다 갱신되므로 최신 연도는 [skytraxratings.com](https://skytraxratings.com/)에서 확인한다.
   - **2025 Top 10 (Skytrax 기준)**: 1. Qatar Airways · 2. Singapore Airlines · 3. Cathay Pacific · 4. Emirates · 5. ANA All Nippon Airways · 6. Turkish Airlines · 7. Korean Air · 8. Air France · 9. Japan Airlines · 10. Hainan Airlines
 
 ### [에어프레미아 (Air Premia, YP)](https://www.airpremia.com/)
