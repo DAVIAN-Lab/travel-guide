@@ -10,7 +10,7 @@ export const TAG_RE = /\s—\s(?<name>[^()—]+?)\s\((?:(?<conf>[^()·]*?)\s)?(?
 // 꼬리표를 쓰려다 형식이 틀린 것 (하이픈, 2026.4, 전각 괄호, 끝의 마침표). 경고만 한다.
 const TAG_LIKE_RE = /\s[—–-]{1,2}\s*[^()（）—–]{1,20}?\s*[(（][^()（）]*\d{4}[^()（）]*[)）]\s*\.?$/u;
 const CONF_COMMENT_RE = /<!--\s*관련 학회:\s*([\s\S]*?)\s*-->/;
-const EDITION_RE = /^(?<series>[A-Za-z][A-Za-z0-9&/\- ]*?)\s(?<year>\d{4})\s\((?<months>\d{1,2}(?:-\d{1,2})?)월(?:\s—\s(?<venue>[^()]+?))?\)(?:\s—\s(?<after>.+))?$/u;
+const EDITION_RE = /^(?<series>[\p{L}\p{N}][\p{L}\p{N}&/\- ]*?)\s(?<year>\d{4})(?:\s\((?<months>\d{1,2}(?:-\d{1,2})?)월(?:\s—\s(?<venue>[^()]+?))?\))?(?:\s—\s(?<after>.+))?$/u;
 const PROVENANCE_RE = /^(?<name>.+?)\s\((?<year>\d{4})\.(?<month>\d{2})\)$/u;
 
 // ---------- 경로 ↔ 페이지 id ----------
@@ -107,6 +107,7 @@ function depth0Split(text, needle, limit = Infinity) {
 export function parseConferences(body) {
   const res = { editions: [], note: '', bad: [] };
   const text = body.trim();
+  if (/^TODO\b/.test(text)) return res;  // 템플릿 그대로
   const [listPart, rest = ''] = depth0Split(text, '. ', 1);
   const list = listPart.replace(/\.$/, '').trim();
   const tail = rest.replace(/\.$/, '').trim();
@@ -116,7 +117,7 @@ export function parseConferences(body) {
     if (!m) { res.bad.push(frag); continue; }
     const g = m.groups;
     res.editions.push({
-      series: g.series, year: +g.year, months: g.months, month: +g.months.split('-')[0],
+      series: g.series, year: +g.year, months: g.months || '', month: g.months ? +g.months.split('-')[0] : 0,
       venue: (g.venue || g.after || (shared ? shared[1] : '') || '').replace(/\.$/, '').trim(),
       label: `${g.series} ${g.year}`,
     });
@@ -286,7 +287,8 @@ function decorate(state) {
         if (p?.type === 'paragraph_open' && inline?.type === 'inline') {
           item.text = inlineText(inline).trim();
           const ch = inline.children || [];
-          if (ch[0]?.type === 'strong_open') item.head = inlineText({ children: ch.slice(1, ch.findIndex((c) => c.type === 'strong_close')) }).trim();
+          const first = ch.findIndex((c) => !(c.type === 'text' && c.content === ''));
+          if (ch[first]?.type === 'strong_open') item.head = inlineText({ children: ch.slice(first + 1, ch.findIndex((c) => c.type === 'strong_close')) }).trim();
           const a = ch.find((c) => c.type === 'link_open');
           if (a) {
             const close = ch.indexOf(ch.find((c, k) => k > ch.indexOf(a) && c.type === 'link_close'));
@@ -367,6 +369,7 @@ export function parseDoc(path, source) {
   try {
     text = normalizeSource(source);
     doc.lines = text.split('\n').length;
+    if (!text.trim()) doc.warnings.push({ line: 0, msg: '문서가 비어 있습니다.' });
     const cm = text.match(CONF_COMMENT_RE);
     if (cm) {
       const c = parseConferences(cm[1]);
@@ -476,4 +479,38 @@ export function buildSite(index, general, countryDocs, cityDocs) {
       to: years.length ? Math.max(...years) : 0,
     },
   };
+}
+
+// 국가 README ## 6. 도시 목록 줄에 적힌 학회가 도시 주석과 어긋나면 도시 문서에 경고를 단다.
+export function crossCheck(site) {
+  for (const c of site.countries) {
+    for (const ct of c.cities) {
+      if (!ct.doc || ct.doc.missing) continue;
+      if (!/\d{4}/.test(ct.entry.desc)) continue;
+      for (const e of ct.doc.editions) {
+        if (!ct.entry.desc.includes(e.series) || !ct.entry.desc.includes(String(e.year))) {
+          ct.doc.warnings.push({ line: 0, msg: `${e.label}이(가) ${c.entry.ko} README 도시 목록 줄에 없습니다.` });
+        }
+      }
+    }
+  }
+  return site;
+}
+
+// read(path) → Promise<{ text, ... } | null>. 국가 목록 → 국가 README → 도시 문서 순서로 읽는다.
+export async function loadSite(read) {
+  const load = async (path) => {
+    const r = await read(path);
+    if (r && typeof r.text === 'string') return parseDoc(path, r.text);
+    const d = parseDoc(path, '');
+    d.missing = true;
+    d.warnings = [];
+    d.error = `${path}을(를) 불러오지 못했습니다${r?.status ? ` (HTTP ${r.status})` : ''}.`;
+    return d;
+  };
+  const [index, general] = await Promise.all([load('countries/README.md'), load('general.md')]);
+  if (index.missing || index.countries.length === 0) throw new Error(index.error || '국가 목록이 비어 있습니다.');
+  const countries = await Promise.all(index.countries.map((c) => load(idToPath(c.id))));
+  const cities = await Promise.all(countries.flatMap((d) => d.cities.map((c) => load(idToPath(c.id)))));
+  return crossCheck(buildSite(index, general, countries, cities));
 }

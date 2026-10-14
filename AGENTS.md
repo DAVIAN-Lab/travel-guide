@@ -16,9 +16,12 @@
 │   └── <country>/
 │       ├── README.md        그 나라 공통 정보 (통화/콘센트/시차/비자/통신·결제 일반)
 │       └── <city>.md        도시별 정보 (공항/숙소/교통/식당/...)
-└── templates/
-    ├── country-template.md
-    └── city-template.md
+├── templates/
+│   ├── country-template.md
+│   └── city-template.md
+├── index.html               웹사이트 진입점 (§7)
+├── .nojekyll                Pages가 .md를 원문 그대로 내보내게 하는 빈 파일. 지우면 사이트가 깨진다
+└── site/                    웹사이트 코드·데이터 (구조는 site/README.md)
 ```
 
 학회별 별도 문서는 만들지 않는다. 학회 정보는 도시 문서의 각 항목 꼬리표로.
@@ -152,6 +155,7 @@ H3 아래 최신 후기 1~2개만. 3개가 되면 가장 오래된 것을 같은
 | 항공사 H3 (general.md ## 3) | `### [한국어명 (English, IATA)](공식 사이트 URL)` |
 | 항공사 후기 bullet 꼬리표 | `— 이름 (학회명 YYYY.MM · 출발-도착)` 또는 `— 이름 (YYYY.MM · 출발-도착)` |
 | 도시 문서 첫 줄 | `> 이 도시는 [<국가>](README.md) 공통 가이드를 따릅니다. 아래는 <도시명>에 한정된 정보입니다.` |
+| 관련 학회 주석 (도시 H1 바로 아래) | `<!-- 관련 학회: 학회명 YYYY (M월), 학회명 YYYY (M-M월 — 장소). -->`. 회차 사이는 쉼표. 여러 회차가 같은 장소면 끝에 `둘 다 <장소>.` 학회 개최지가 아니면 연도 없이 한 문장 메모. 웹사이트의 학회 목록·도시 머리말이 이 주석에서 나온다 |
 | 도시 Archive 헤더 | `## 10. 변경 이력 (Archive)` |
 | 국가 Archive 헤더 | `## 7. 변경 이력 (Archive)` |
 | general.md Archive 헤더 | `## 99. 변경 이력 (Archive)` |
@@ -177,8 +181,20 @@ H3 아래 최신 후기 1~2개만. 3개가 되면 가장 오래된 것을 같은
 
 자국(한국) README는 거주자에게 자명한 정보(통화·콘센트·시차·비자·팁·결제 일반·응급 번호·영사관 안내·통신 일반)를 적지 않는다. 인덱스 역할(`## 6. 도시 목록`)만 유지하고 `## 0/1/2/3/4/5/7` 섹션은 생략. 새 자국 도시 추가 시 `## 6` 목록에 한 줄 추가.
 
-## 6. 기여 후 셀프 체크 3줄
+## 6. 기여 후 셀프 체크
 
 - [ ] 본문이 최신인가? 옛 정보는 같은 문서의 Archive로 옮겼는가?
 - [ ] 모든 평가 bullet에 `— 이름 (학회명 YYYY.MM)` 꼬리표(학회 무관이면 `— 이름 (YYYY.MM)`)가 있는가?
 - [ ] 신규 호텔·식당 H3에 구글맵 링크가 있고 한국어/영문이 모두 있는가?
+- [ ] 점검 페이지(§7)가 `CHECK PASS`인가?
+
+## 7. 웹사이트
+
+<https://davian-lab.github.io/travel-guide/>는 이 레포의 마크다운을 브라우저가 직접 읽어 그린다. 빌드 단계가 없어서 main에 push하면 최대 10분 안에 반영된다. 구조와 하지 않기로 한 것은 [site/README.md](site/README.md)에 있다.
+
+- 사이트가 읽는 파일은 `general.md`, `countries/README.md`, 국가 목록에 링크된 `countries/<country>/README.md`, 각 국가 README `## 6. 도시 목록`에 링크된 도시 문서뿐이다. 목록에 링크가 없는 파일은 사이트에 나오지 않는다.
+- 꼬리표는 bullet 첫 문단의 **맨 끝**에 둔다. 뒤에 마침표나 다른 글을 붙이면 후기로 세지 않는다 (칩·후기 수·학회별 모음에서 빠진다).
+- 장소 H3는 **링크 하나만** 담는다 (`### [한국어명 (English)](링크)`). 링크 밖에 글을 붙이면 장소로 인식하지 않는다.
+- 콘텐츠 작업 중에는 `site/` 코드, `index.html`, `.nojekyll`을 고치지 않는다. 예외는 `site/data/*.json` 갱신뿐이다.
+- GitHub Pages 빌드는 시간당 약 10회 제한이 있다. 여러 커밋은 묶어서 push한다.
+- 점검: `site/check.html`을 열어 탭 제목이 `CHECK PASS`인지 본다. 형식 경고가 있는 문서는 그 문서 페이지 위쪽에도 한 줄로 뜬다. push 전에 로컬에서 보려면 레포 루트에서 `powershell -NoProfile -ExecutionPolicy Bypass -File site/serve.ps1`을 실행하고 <http://localhost:8000/travel-guide/site/check.html>을 연다.

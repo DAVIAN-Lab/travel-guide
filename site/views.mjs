@@ -100,7 +100,9 @@ function notReady(msg) {
 
 function home(site) {
   const s = site.stats;
-  const withTags = site.docs.filter((d) => d.tags.length).sort((a, b) => b.tags.length - a.tags.length);
+  const rank = { city: 0, country: 1, general: 2 };
+  const withTags = site.docs.filter((d) => d.tags.length)
+    .sort((a, b) => b.tags.length - a.tags.length || rank[a.kind] - rank[b.kind]);
   const card = (d) => {
     const secs = d.sections.filter((x) => x.tags).map((x) => x.title);
     const where = d.kind === 'country' ? `${shortName(d)} 국가 공통` : d.variant === 'departure' ? `${shortName(d)} · 출국 가이드` : shortName(d);
@@ -135,7 +137,7 @@ function crumbs(site, doc) {
 
 function confLine(doc) {
   if (!doc.editions.length) return doc.confNote ? html`<p class="confs muted">${doc.confNote}</p>` : '';
-  return html`<p class="confs">${doc.editions.map((e, i) => html`${i ? ' · ' : ''}<span>${e.label} (${e.months}월${e.venue ? ` · ${e.venue}` : ''})</span>`)}</p>`;
+  return html`<p class="confs">${doc.editions.map((e, i) => html`${i ? ' · ' : ''}<span>${e.label}${e.months ? ` (${e.months}월${e.venue ? ` · ${e.venue}` : ''})` : e.venue ? ` (${e.venue})` : ''}</span>`)}</p>`;
 }
 
 function metaLine(doc) {
@@ -144,6 +146,9 @@ function metaLine(doc) {
 }
 
 function warnLine(doc) {
+  if (doc.missing) {
+    return html`<p class="warn">${doc.error} 잠시 뒤 다시 열거나 <a href="${blobUrl(doc)}" target="_blank" rel="noopener">GitHub 원문</a>을 보세요.</p>`;
+  }
   if (doc.error) {
     return html`<p class="warn">이 문서를 해석하지 못해 꾸밈 없이 보여 줍니다 (${doc.error}). <a href="${blobUrl(doc)}" target="_blank" rel="noopener">GitHub 원문</a></p>`;
   }
@@ -156,7 +161,7 @@ function warnLine(doc) {
 function skeleton(doc) {
   if (doc.kind !== 'city' || doc.tags.length || doc.missing) return '';
   const eds = doc.editions;
-  const tagText = (e) => ` — 이름 (${e.series} ${e.year}.${String(e.month).padStart(2, '0')})`;
+  const tagText = (e) => ` — 이름 (${e.series} ${e.year}.${e.month ? String(e.month).padStart(2, '0') : 'MM'})`;
   return html`<aside class="banner">
     <p><b>아직 후기가 없습니다.</b> 아래는 사전 조사한 기본 정보입니다.
     ${eds.length ? `${eds.map((e) => e.label).join(' · ')}에 다녀오셨다면 한 줄 남겨 주세요.` : '다녀오셨다면 한 줄 남겨 주세요.'}</p>

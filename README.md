@@ -2,6 +2,8 @@
 
 DAVIAN Lab의 학회/여행 누적 가이드. 출장에서 쌓인 호텔·식당·공항·교통·통신·기념품 정보를 한 곳에 모아 다음 출장자가 빨리 준비할 수 있게 한다.
 
+**웹사이트: <https://davian-lab.github.io/travel-guide/>** — 이 레포의 마크다운을 국가·도시 메뉴와 지도로 보여 준다. 레포를 고치면 최대 10분 뒤 사이트에 반영된다.
+
 ## 핵심 규칙 (3줄)
 
 - **한국어 위주**, 호텔·지명·학회명 같은 고유명사는 원문 병기 (`[한국어명 (English)]`).
@@ -26,9 +28,11 @@ DAVIAN Lab의 학회/여행 누적 가이드. 출장에서 쌓인 호텔·식당
 │   └── <country>/
 │       ├── README.md                국가 공통 정보 (통화/콘센트/시차/비자/...)
 │       └── <city>.md                도시별 정보 (공항/숙소/교통/식당/...)
-└── templates/
-    ├── country-template.md
-    └── city-template.md
+├── templates/
+│   ├── country-template.md
+│   └── city-template.md
+├── index.html                       웹사이트 진입점
+└── site/                            웹사이트 코드·데이터 (site/README.md)
 ```
 
 학회별 별도 문서는 만들지 않는다. 학회 정보(시기·학회명·작성자)는 도시 문서의 각 항목 옆 꼬리표 한 줄로 남긴다.

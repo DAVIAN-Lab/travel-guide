@@ -2,6 +2,8 @@
 
 # <도시명> (<English Name>)
 
+<!-- 관련 학회: TODO -->
+
 <!-- agent:
 이 파일은 templates/city-template.md의 사본 베이스다.
 새 도시 추가 시 countries/<국가>/<도시>.md로 복사한 뒤 빈 칸을 채운다.

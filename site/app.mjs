@@ -1,5 +1,5 @@
 // 진입점: 마크다운 불러오기 · 주소(?p=) 해석 · 화면 전환.
-import { parseDoc, idToPath, buildSite } from './parse.mjs';
+import { loadSite } from './parse.mjs';
 import * as views from './views.mjs';
 
 export const ROOT = new URL('../', import.meta.url);
@@ -7,29 +7,17 @@ const app = document.getElementById('app');
 let site = null;
 let deployed = '';
 
-async function loadDoc(path, reload) {
-  try {
-    const res = await fetch(new URL(path, ROOT), { cache: reload ? 'reload' : 'default' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    if (path === 'countries/README.md') deployed = res.headers.get('Last-Modified') || '';
-    return parseDoc(path, await res.text());
-  } catch (e) {
-    const d = parseDoc(path, '');
-    d.missing = true;
-    d.error = `${path}을(를) 불러오지 못했습니다 (${e.message}).`;
-    return d;
-  }
-}
-
-// 국가 목록 → 국가 README의 ## 6. 도시 목록 → 도시 문서. 따로 관리하는 목록은 없다.
 async function loadAll(reload = false) {
-  const [index, general] = await Promise.all([
-    loadDoc('countries/README.md', reload), loadDoc('general.md', reload)]);
-  if (index.missing || index.countries.length === 0) throw new Error(index.error || '국가 목록이 비어 있습니다.');
-  const countries = await Promise.all(index.countries.map((c) => loadDoc(idToPath(c.id), reload)));
-  const cityIds = countries.flatMap((d) => d.cities.map((c) => c.id));
-  const cities = await Promise.all(cityIds.map((id) => loadDoc(idToPath(id), reload)));
-  return buildSite(index, general, countries, cities);
+  return loadSite(async (path) => {
+    try {
+      const res = await fetch(new URL(path, ROOT), { cache: reload ? 'reload' : 'default' });
+      if (!res.ok) return { status: res.status };
+      if (path === 'countries/README.md') deployed = res.headers.get('Last-Modified') || '';
+      return { text: await res.text() };
+    } catch {
+      return null;
+    }
+  });
 }
 
 function route() {
