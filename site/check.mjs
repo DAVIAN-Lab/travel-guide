@@ -25,7 +25,7 @@ const tests = [
   ['제목 id: 중복은 -1, -2', () => { const s = slugger(); eq([s('공항 — 옛 후기'), s('공항 — 옛 후기'), s('공항 — 옛 후기')], ['공항--옛-후기', '공항--옛-후기-1', '공항--옛-후기-2']); }],
 
   ['꼬리표: 학회 + 노선', () => eq({ ...' — 조영우 (ICLR 2026.04 · JFK-GIG, 산티아고 경유)'.match(TAG_RE).groups }, { name: '조영우', conf: 'ICLR', year: '2026', month: '04', route: 'JFK-GIG, 산티아고 경유' })],
-  ['꼬리표: 학회 무관', () => eq('— 조영우 (2026.05)'.replace(/^/, 'x ').match(TAG_RE).groups.conf, undefined)],
+  ['꼬리표: 학회 무관', () => eq('x — 조영우 (2026.05)'.match(TAG_RE).groups.conf, undefined)],
   ['꼬리표: 두 단어 학회명', () => eq(' — 김 (IEEE VIS 2023.10)'.match(TAG_RE).groups.conf, 'IEEE VIS')],
   ['꼬리표 아님: 하이픈', () => eq(' - 조영우 (ICLR 2026.04)'.match(TAG_RE), null)],
   ['꼬리표 아님: 월 한 자리', () => eq(' — 조영우 (ICLR 2026.4)'.match(TAG_RE), null)],
@@ -38,6 +38,14 @@ const tests = [
   ['형식이 틀린 꼬리표는 경고', () => {
     const d = parseDoc('countries/usa/t.md', CITY('## 3. 숙소\n\n- 좋았음. — 조영우 (ICLR 2026.4)\n'));
     eq(d.tags.length, 0); yes(d.warnings.some((w) => w.msg.includes('꼬리표')));
+  }],
+  ['날짜가 든 보통 문장은 꼬리표 경고를 하지 않는다', () => {
+    const d = parseDoc('countries/usa/t.md', CITY('## 4. 교통\n\n- 우버 — 공항까지 약 30분 (2026년 4월 기준).\n- 셔틀 - 학회장까지 (2025 기준)\n'));
+    eq([d.tags.length, d.warnings.length], [0, 0]);
+  }],
+  ['줄을 바꿔 쓴 꼬리표도 꼬리표', () => {
+    const d = parseDoc('countries/usa/t.md', CITY('## 3. 숙소\n\n- 좋았음.\n  — 조영우 (ICLR 2026.04)\n'));
+    eq([d.tags.length, d.tags[0]?.tag.name, d.warnings.length], [1, '조영우', 0]);
   }],
   ['(전언)은 굵은 머리말 뒤에 있어도 감지', () => {
     const d = parseDoc('countries/usa/t.md', CITY('## 8. 주의사항\n\n- **하차 지점 확인** — (전언) 강도 사례. — 조영우 (ICLR 2026.04)\n- (전언) **상위 등급** — 조언. — 조영우 (ICLR 2026.04)\n'));
@@ -57,13 +65,21 @@ const tests = [
     const d = parseDoc('countries/usa/t.md', CITY('## 1. 개요\n\n<!-- 닫지 않음\n\n- 본문\n'));
     eq(d.error, null); yes(d.warnings.some((w) => w.msg.includes('닫히지 않은')));
   }],
-  ['빈 파일·이상한 입력도 throw하지 않는다', () => {
-    for (const s of ['', '﻿', '\0\0\0', '#', '|a|\n|-|\n|b|', '- '.repeat(5000), '['.repeat(10000), '<!--'.repeat(500)]) parseDoc('countries/usa/t.md', s);
+  // parseDoc은 throw하지 않도록 감싸져 있으니, 감싼 catch까지 가지 않는지(error가 없는지)를 본다.
+  ['빈 파일·이상한 입력도 해석에 실패하지 않는다', () => {
+    for (const s of ['', '﻿', '\0\0\0', '#', '|a|\n|-|\n|b|', '- '.repeat(5000), '['.repeat(10000), '<!--'.repeat(500), '- [x](foo%E0%A4.md)']) {
+      const d = parseDoc('countries/usa/t.md', s);
+      if (d.error) throw new Error(`${JSON.stringify(s.slice(0, 20))}: ${d.error}`);
+    }
   }],
-  ['CRLF·BOM은 정규화한다', () => eq(parseDoc('countries/usa/t.md', '﻿# 가 (A)\r\n\r\n## 1. 개요\r\n\r\n- x\r\n').sections[0].slug, '1-개요')],
+  ['CRLF·BOM은 정규화한다', () => {
+    const d = parseDoc('countries/usa/t.md', '﻿# 가 (A)\r\n\r\n## 1. 개요\r\n\r\n- x\r\n');
+    eq([d.title, d.sections[0].slug], ['가 (A)', '1-개요']);
+  }],
 
   ['학회 주석: 괄호 안 장소', () => eq(parseConferences('ICCV 2019 (10월 — COEX), ICASSP 2024 (4월).').editions.map((e) => [e.label, e.venue]), [['ICCV 2019', 'COEX'], ['ICASSP 2024', '']])],
   ['학회 주석: 괄호 뒤 장소', () => eq(parseConferences('ICLR 2026 (4월) — Riocentro Convention Center.').editions[0].venue, 'Riocentro Convention Center')],
+  ['학회 주석: 장소 이름 속 마침표', () => eq(parseConferences('SIGIR 2024 (7월) — Walter E. Washington Convention Center.').editions[0].venue, 'Walter E. Washington Convention Center')],
   ['학회 주석: "둘 다" 장소', () => eq(parseConferences('NeurIPS 2022 (12월), NeurIPS 2023 (12월). 둘 다 Ernest N. Morial Convention Center.').editions.map((e) => e.venue), ['Ernest N. Morial Convention Center', 'Ernest N. Morial Convention Center'])],
   ['학회 주석: 괄호가 든 "둘 다" 장소', () => eq(parseConferences('WACV 2023 (1월), WACV 2024 (1월). 둘 다 Waikoloa Beach (Big Island, Hawaii).').editions[1].venue, 'Waikoloa Beach (Big Island, Hawaii)')],
   ['학회 주석: 기간·특수 이름', () => eq(parseConferences('IEEE VIS 2023 (10월), ACM MM 2024 (10-11월), ECML/PKDD 2023 (9월), IJCNLP-AACL 2023 (11월) — Nusa Dua.').editions.map((e) => [e.series, e.months, e.month]), [['IEEE VIS', '10', 10], ['ACM MM', '10-11', 10], ['ECML/PKDD', '9', 9], ['IJCNLP-AACL', '11', 11]])],
@@ -89,6 +105,7 @@ const tests = [
   ['링크: 폴더는 GitHub tree로', () => eq(rewriteHref('../templates/', 'countries/README.md').href, `${REPO}/tree/main/templates/`)],
   ['링크: 국가 목록은 홈', () => eq(rewriteHref('countries/README.md', 'general.md').href, './')],
   ['링크: 외부 주소는 그대로', () => eq(rewriteHref('https://www.dayuse.com/', 'general.md'), { href: 'https://www.dayuse.com/', external: true })],
+  ['링크: 깨진 %인코딩은 그대로 둔다', () => eq(rewriteHref('foo%E0%A4.md', 'general.md').external, true)],
   ['장소 좌표 키는 쿼리를 뗀다', () => eq(placeKey('https://maps.app.goo.gl/abc?g_st=ic'), 'https://maps.app.goo.gl/abc')],
   ['검색: 악센트·대소문자·공백 무시', () => eq(norm('Bangalô  Restaurante'), 'bangalorestaurante')],
   ['검색: 입력 중인 글자(칻·ㅋ)도 맞는다', () => { yes(jamo('교통카드').includes(jamo('교통칻'))); yes(jamo('교통카드').includes(jamo('교통ㅋ'))); }],

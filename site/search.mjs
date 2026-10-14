@@ -23,7 +23,7 @@ export function jamo(s) {
 
 // 소문자 → 악센트 제거 (NFD 후 결합 부호 삭제) → 공백 제거.
 export function norm(s) {
-  return String(s).normalize('NFC').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').normalize('NFC').replace(/\s+/g, '');
+  return String(s).toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').normalize('NFC').replace(/\s+/g, '');
 }
 
 const key = (s) => jamo(norm(s));
@@ -36,7 +36,7 @@ function shortName(d) {
 
 export function buildIndex(site) {
   const recs = [];
-  const aliases = (id) => site.geo?.cities?.[id]?.aliases || [];
+  const aliases = (id) => { const a = site.geo?.cities?.[id]?.aliases; return Array.isArray(a) ? a.filter((x) => typeof x === 'string') : []; };
   for (const d of site.docs) {
     if (d.missing) continue;
     const crumbs = d.kind === 'city' ? [d.home?.entry.ko, shortName(d)] : [shortName(d)];
@@ -52,12 +52,13 @@ export function buildIndex(site) {
       { sub: d.kind === 'city' ? d.home?.entry.ko : d.kind === 'country' ? '국가' : '' });
     for (const s of d.sections) if (!s.archive) add('section', s.heading, '', pageHref(d.id, `#${s.slug}`));
     for (const p of d.places) {
+      if (p.archive) continue;  // Archive(옛 정보)는 섹션처럼 색인하지 않는다
       add('place', p.name, '', pageHref(d.id, `#${p.slug}`), { gmap: p.kind !== 'site' ? p.href : '', gmapLabel: p.kind === 'share' ? '구글맵' : '구글맵 검색', trail: p.sectionTitle });
     }
     const quick = d.sections.find((s) => s.num === 0 && !s.archive);
     for (const r of d.checklist) add('row', r.label, r.status, pageHref(d.id, quick ? `#${quick.slug}` : ''), { trail: quick?.title || '' });
     for (const it of d.items) {
-      if (it.kind === 'todo' || it.kind === 'placeholder' || !it.text) continue;
+      if (it.archive || it.kind === 'todo' || it.kind === 'placeholder' || !it.text) continue;
       if (d.kind === 'country' && it.section === 6) continue;  // 도시 목록 줄은 도시 결과와 겹친다
       add('item', it.head || '', it.text, pageHref(d.id, it.anchor ? `#${it.anchor}` : ''),
         { where: [it.sectionTitle, it.place].filter(Boolean).join(' › '), trail: [it.sectionTitle, it.place].join(SEP) });

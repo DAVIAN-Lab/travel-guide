@@ -7,8 +7,9 @@ export const REPO = 'https://github.com/DAVIAN-Lab/travel-guide';
 
 // 꼬리표 "— 이름 (학회 YYYY.MM · 노선)". bullet 첫 문단의 맨 끝에만 있다 (AGENTS.md §4).
 export const TAG_RE = /\s—\s(?<name>[^()—]+?)\s\((?:(?<conf>[^()·]*?)\s)?(?<year>\d{4})\.(?<month>\d{2})(?:\s·\s(?<route>[^()]+))?\)$/u;
-// 꼬리표를 쓰려다 형식이 틀린 것 (하이픈, 2026.4, 전각 괄호, 끝의 마침표). 경고만 한다.
-const TAG_LIKE_RE = /\s[—–-]{1,2}\s*[^()（）—–]{1,20}?\s*[(（][^()（）]*\d{4}[^()（）]*[)）]\s*\.?$/u;
+// 꼬리표를 쓰려다 형식이 틀린 것 (하이픈, 2026.4, 전각 괄호, 끝의 마침표, 월 빠짐). 경고만 한다.
+// 괄호 안이 "연도.월" 꼴이거나 한글 없이 연도만 있을 때만 본다 ("(2026년 4월 기준)" 같은 보통 문장은 제외).
+const TAG_LIKE_RE = /\s[—–-]{1,2}\s*[^()（）—–]{1,20}?\s*[(（](?:[^()（）]*\d{4}\s*[.．/-]\s*\d[^()（）]*|[^()（）\p{Script=Hangul}]*\d{4}[^()（）\p{Script=Hangul}]*)[)）]\s*\.?$/u;
 const CONF_COMMENT_RE = /<!--\s*관련 학회:\s*([\s\S]*?)\s*-->/;
 const EDITION_RE = /^(?<series>[\p{L}\p{N}][\p{L}\p{N}&/\- ]*?)\s(?<year>\d{4})(?:\s\((?<months>\d{1,2}(?:-\d{1,2})?)월(?:\s—\s(?<venue>[^()]+?))?\))?(?:\s—\s(?<after>.+))?$/u;
 const PROVENANCE_RE = /^(?<name>.+?)\s\((?<year>\d{4})\.(?<month>\d{2})\)$/u;
@@ -46,8 +47,9 @@ export function pageHref(id, hash = '') {
 export function rewriteHref(href, fromPath) {
   if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith('//')) return { href, external: true };
   const u = new URL(href, `https://repo.invalid/${fromPath}`);
-  if (u.host !== 'repo.invalid') return { href, external: true };
-  const path = decodeURIComponent(u.pathname.slice(1));
+  if (u.host !== 'repo.invalid') return { href, external: true };  // "\\host" 같은 것
+  let path = u.pathname.slice(1);
+  try { path = decodeURIComponent(path); } catch { /* 깨진 %인코딩은 그대로 */ }
   const id = pathToId(path);
   if (id) return { href: pageHref(id, u.hash), id };
   const kind = path === '' || path.endsWith('/') ? 'tree' : 'blob';
@@ -85,15 +87,15 @@ export function slugger() {
   };
 }
 
-// 괄호 깊이 0에서만 needle을 찾는다.
-function depth0Split(text, needle, limit = Infinity) {
+// 괄호 깊이 0에서만 needle을 찾는다. after가 있으면 needle 바로 뒤 글자가 맞을 때만 나눈다.
+function depth0Split(text, needle, limit = Infinity, after = null) {
   const out = [];
   let depth = 0, start = 0;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
     if (c === '(') depth++;
     else if (c === ')') depth = Math.max(0, depth - 1);
-    else if (depth === 0 && out.length < limit && text.startsWith(needle, i)) {
+    else if (depth === 0 && out.length < limit && text.startsWith(needle, i) && (!after || after.test(text[i + needle.length] || ''))) {
       out.push(text.slice(start, i));
       start = i + needle.length;
       i = start - 1;
@@ -104,11 +106,12 @@ function depth0Split(text, needle, limit = Infinity) {
 }
 
 // "<!-- 관련 학회: ICLR 2026 (4월) — Riocentro. -->" 같은 주석 본문을 회차 목록으로.
+// 목록과 뒷문장("둘 다 …", 메모)은 ". " 뒤에 한글이 올 때만 나눈다 ("Walter E. Washington"은 장소 이름).
 export function parseConferences(body) {
   const res = { editions: [], note: '', bad: [] };
   const text = body.trim();
   if (/^TODO\b/.test(text)) return res;  // 템플릿 그대로
-  const [listPart, rest = ''] = depth0Split(text, '. ', 1);
+  const [listPart, rest = ''] = depth0Split(text, '. ', 1, /\p{Script=Hangul}/u);
   const list = listPart.replace(/\.$/, '').trim();
   const tail = rest.replace(/\.$/, '').trim();
   const shared = tail.match(/^둘 다\s+(.+)$/u);
@@ -119,7 +122,7 @@ export function parseConferences(body) {
     res.editions.push({
       series: g.series, year: +g.year, months: g.months || '', month: g.months ? +g.months.split('-')[0] : 0,
       venue: (g.venue || g.after || (shared ? shared[1] : '') || '').replace(/\.$/, '').trim(),
-      label: `${g.series} ${g.year}`,
+      label: editionKey(g.series, g.year),
     });
   }
   if (res.editions.length === 0) {
@@ -169,23 +172,26 @@ export function splitName(name) {
   return m ? { ko: m[1], en: m[2] } : { ko: name, en: '' };
 }
 
-// 내용이 링크 하나뿐인 제목이면 장소.
+// 내용이 링크 하나뿐인 제목이면 장소. (제목의 inline은 아직 rewriteLinks 전이라 href는 원문 그대로다.)
 function placeOf(inline) {
   const ch = (inline.children || []).filter((c) => !(c.type === 'text' && c.content.trim() === ''));
   if (ch.length < 3 || ch[0].type !== 'link_open' || ch[ch.length - 1].type !== 'link_close') return null;
   if (ch.slice(1, -1).some((c) => c.type === 'link_open')) return null;
-  return { href: ch[0].meta?.raw ?? ch[0].attrGet('href'), name: inlineText(inline).trim() };
+  return { href: ch[0].attrGet('href'), name: inlineText(inline).trim() };
 }
 
 function splitTag(state, inline) {
   const ch = inline.children;
   const last = ch[ch.length - 1];
   if (!last || last.type !== 'text') return null;
-  const m = last.content.match(TAG_RE);
+  // 줄을 바꿔 쓴 꼬리표("…\n  — 이름 (…)")는 GitHub에서 한 줄로 보이므로 앞에 공백이 있는 것으로 본다.
+  const pad = ch[ch.length - 2]?.type === 'softbreak' ? ' ' : '';
+  const s = pad + last.content;
+  const m = s.match(TAG_RE);
   if (!m) return null;
   const lead = m[0].match(/^\s—\s/)[0];
   ch.splice(ch.length - 1, 1,
-    textToken(state, last.content.slice(0, m.index) + lead),
+    textToken(state, (s.slice(0, m.index) + lead).slice(pad.length)),
     htmlToken(state, '<span class="tag">'),
     textToken(state, m[0].slice(lead.length)),
     htmlToken(state, '</span>'));
@@ -199,9 +205,7 @@ function splitTag(state, inline) {
 function rewriteLinks(inline, env) {
   for (const c of inline.children || []) {
     if (c.type !== 'link_open') continue;
-    const raw = c.attrGet('href') || '';
-    c.meta = { ...(c.meta || {}), raw };
-    const r = rewriteHref(raw, env.doc.path);
+    const r = rewriteHref(c.attrGet('href') || '', env.doc.path);
     c.attrSet('href', r.href);
     if (r.external) { c.attrSet('target', '_blank'); c.attrSet('rel', 'noopener'); }
   }
@@ -290,10 +294,10 @@ function decorate(state) {
           const ch = inline.children || [];
           const first = ch.findIndex((c) => !(c.type === 'text' && c.content === ''));
           if (ch[first]?.type === 'strong_open') item.head = inlineText({ children: ch.slice(first + 1, ch.findIndex((c) => c.type === 'strong_close')) }).trim();
-          const a = ch.find((c) => c.type === 'link_open');
-          if (a) {
-            const close = ch.indexOf(ch.find((c, k) => k > ch.indexOf(a) && c.type === 'link_close'));
-            item.link = { href: a.attrGet('href'), text: inlineText({ children: ch.slice(ch.indexOf(a) + 1, close) }).trim() };
+          const a = ch.findIndex((c) => c.type === 'link_open');
+          if (a >= 0) {
+            const close = ch.findIndex((c, k) => k > a && c.type === 'link_close');
+            item.link = { href: ch[a].attrGet('href'), text: inlineText({ children: ch.slice(a + 1, close) }).trim() };
           }
           if (/^TODO\b/.test(item.text)) { item.kind = 'todo'; t.attrJoin('class', 'todo'); }
           else if (/^아직 비어 있음\.?$/.test(item.text)) { item.kind = 'placeholder'; t.attrJoin('class', 'placeholder'); }
@@ -349,7 +353,7 @@ function finishTable(state, doc, sec, table) {
       doc.checklist.push(row);
     }
   }
-  doc.tables.push({ section: table.section, archive: table.archive, sub: table.sub, head: table.head, rows: table.rows.map((r) => r.map((c) => c.text)), line: table.line, checklist: isChecklist });
+  doc.tables.push({ section: table.section, archive: table.archive, line: table.line, checklist: isChecklist });
 }
 
 // ---------- 문서 하나 ----------
@@ -358,8 +362,8 @@ function emptyDoc(path) {
   const id = pathToId(path);
   return {
     path, id, kind: kindOf(id), title: '', ko: '', en: '', variant: '', intro: '',
-    editions: [], confNote: '', confBad: [], sections: [], preHtml: '', items: [], tags: [], places: [],
-    tables: [], checklist: [], countries: [], cities: [], warnings: [], error: null, lines: 0,
+    editions: [], confNote: '', sections: [], preHtml: '', items: [], tags: [], places: [],
+    tables: [], checklist: [], countries: [], cities: [], warnings: [], error: null,
   };
 }
 
@@ -369,12 +373,11 @@ export function parseDoc(path, source) {
   let text = '';
   try {
     text = normalizeSource(source);
-    doc.lines = text.split('\n').length;
     if (!text.trim()) doc.warnings.push({ line: 0, msg: '문서가 비어 있습니다.' });
     const cm = text.match(CONF_COMMENT_RE);
     if (cm) {
       const c = parseConferences(cm[1]);
-      doc.editions = c.editions; doc.confNote = c.note; doc.confBad = c.bad;
+      doc.editions = c.editions; doc.confNote = c.note;
       for (const b of c.bad) doc.warnings.push({ line: lineOf(text, cm.index), msg: `관련 학회 주석을 읽지 못한 부분: "${b}"` });
     }
     const blanked = blankComments(text);
@@ -386,8 +389,7 @@ export function parseDoc(path, source) {
     renderParts(tokens, doc, env);
     finishDoc(doc);
   } catch (e) {
-    const fresh = emptyDoc(path);
-    Object.assign(doc, fresh, { lines: doc.lines, error: String(e?.message || e) });
+    Object.assign(doc, emptyDoc(path), { error: String(e?.message || e) });
     try { doc.preHtml = plain.render(blankComments(text || String(source))); }
     catch { doc.preHtml = `<pre>${esc(String(source))}</pre>`; }
   }
@@ -425,8 +427,6 @@ function finishDoc(doc) {
   const n = splitName(doc.title);
   doc.ko = n.ko; doc.en = n.en;
   if (/출국 가이드 변종/.test(doc.intro)) doc.variant = 'departure';
-  else if (/부분 슬림 변종/.test(doc.intro)) doc.variant = 'partial';
-  else if (/슬림 변종/.test(doc.intro)) doc.variant = 'slim';
   const listIn = (pred, kind) => doc.items
     .filter((it) => pred(it) && it.link)
     .map((it) => ({ it, id: rewriteHref(it.link.href, doc.path).id }))
@@ -492,13 +492,15 @@ export function buildSite(index, general, countryDocs, cityDocs) {
 }
 
 // 국가 README ## 6. 도시 목록 줄에 적힌 학회가 도시 주석과 어긋나면 도시 문서에 경고를 단다.
+// 학회와 연도는 같은 조각(" / " 또는 ","로 나뉜)에 있어야 한다: "NeurIPS 2022·2023", "ICCV 2019 / CoRL 2025".
 export function crossCheck(site) {
   for (const c of site.countries) {
     for (const ct of c.cities) {
       if (!ct.doc || ct.doc.missing) continue;
       if (!/\d{4}/.test(ct.entry.desc)) continue;
+      const parts = ct.entry.desc.split(/\s+\/\s+|\s*,\s*/);  // "ECML/PKDD"는 나누지 않는다
       for (const e of ct.doc.editions) {
-        if (!ct.entry.desc.includes(e.series) || !ct.entry.desc.includes(String(e.year))) {
+        if (!parts.some((s) => s.includes(e.series) && s.includes(String(e.year)))) {
           ct.doc.warnings.push({ line: 0, msg: `${e.label}이(가) ${c.entry.ko} README 도시 목록 줄에 없습니다.` });
         }
       }
@@ -573,7 +575,12 @@ export function geoProblems(site) {
     ids.add(ct.entry.id);
     if (!cityPoint(site, ct.entry.id)) out.push({ doc: ct.doc, line: 0, msg: `site/data/cities.json에 "${ct.entry.id}" 좌표가 없습니다 (지도에 핀이 빠짐).` });
   }
-  for (const id of Object.keys(site.geo?.cities || {})) if (!ids.has(id)) out.push({ doc: null, line: 0, msg: `site/data/cities.json의 "${id}"는 도시 목록에 없습니다.` });
+  for (const [id, c] of Object.entries(site.geo?.cities || {})) {
+    if (!ids.has(id)) out.push({ doc: null, line: 0, msg: `site/data/cities.json의 "${id}"는 도시 목록에 없습니다.` });
+    if (c?.aliases !== undefined && !(Array.isArray(c.aliases) && c.aliases.every((a) => typeof a === 'string'))) {
+      out.push({ doc: null, line: 0, msg: `site/data/cities.json "${id}"의 aliases는 문자열 목록(["…"])이어야 합니다.` });
+    }
+  }
   const used = new Set();
   for (const d of site.docs) for (const p of d.places) {
     if (p.kind !== 'share') continue;

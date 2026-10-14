@@ -21,6 +21,7 @@
 │   └── city-template.md
 ├── index.html               웹사이트 진입점 (§7)
 ├── .nojekyll                Pages가 .md를 원문 그대로 내보내게 하는 빈 파일. 지우면 사이트가 깨진다
+├── .gitattributes           .md 줄바꿈(LF)과 site/vendor/ 파일 바이트를 고정한다
 └── site/                    웹사이트 코드·데이터 (구조는 site/README.md)
 ```
 
@@ -59,7 +60,7 @@
 +- [샌프란시스코 (San Francisco)](san-francisco.md) — 미 서부, SFO
 ```
 
-5. 웹사이트 지도에 핀이 나오도록 `site/data/cities.json`에 도심 좌표 한 줄을 추가한다 (위키데이터 좌표 기준, 소수 넷째 자리면 충분). 검색 별칭(다른 한국어 표기 등)이 있으면 `aliases`에. 좌표를 모르면 건너뛰어도 된다 — 핀만 빠지고 점검 페이지에 경고가 뜬다.
+5. 웹사이트 지도에 핀이 나오도록 `site/data/cities.json`에 도심 좌표 한 줄을 추가한다 (위키데이터 좌표 기준, 소수 넷째 자리면 충분). 검색 별칭(다른 한국어 표기 등)이 있으면 `aliases`에. 빠뜨리면 지도에 핀이 없고 점검 페이지가 `CHECK FAIL`이 된다(§6). 파일의 마지막 항목으로 넣을 때는 아래 예시 끝의 쉼표를 뺀다 (JSON 문법 오류가 나면 모든 핀·별칭이 사라진다).
 
 ```json
   "usa/san-francisco": { "lat": 37.7749, "lng": -122.4194, "aliases": ["샌프란", "SF"] },

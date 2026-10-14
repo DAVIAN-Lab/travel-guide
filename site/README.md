@@ -38,7 +38,7 @@ GitHub Pages는 응답을 10분 캐시한다(`max-age=600`, 바꿀 수 없음). 
 - **점검**: <http://localhost:8000/travel-guide/site/check.html> (배포본은 `…/travel-guide/site/check.html`). 탭 제목이 `CHECK PASS`면 통과. 실패한 시험과 형식 문제는 파일:줄 링크로 나온다.
 - **사이트 이름 바꾸기**: `index.html`의 `<title>`·`og:title`과 `views.mjs` 맨 위 `SITE` 한 줄.
 - **라이브러리 버전 올리기**: 같은 패키지의 같은 경로 파일을 jsDelivr(`https://cdn.jsdelivr.net/npm/<패키지>@<버전>/<경로>`)에서 받아 통째로 바꾸고, `VENDORED.txt`의 크기·SHA-256을 고친다. 그 뒤 점검 페이지가 PASS인지 본다.
-- **장소 지도 끄기**: OpenStreetMap이 접속을 막거나 정책이 바뀌면 `views.mjs` 맨 위 `PLACE_MAP`을 `false`로 바꾼다 (도시 페이지의 "지도 펼치기" 버튼이 사라진다). 막히면 오류 대신 안내 그림이 타일 자리에 뜬다.
+- **장소 지도 끄기**: OpenStreetMap이 접속을 막거나 정책이 바뀌면 `views.mjs` 맨 위 `PLACE_MAP`을 `false`로 바꾼다 (도시 페이지의 "지도 펼치기" 버튼이 사라진다). 아예 걷어 낼 때는 `index.html` 보안 정책(CSP)의 `https://tile.openstreetmap.org`도 지운다. 막히면 오류 대신 안내 그림이 타일 자리에 뜬다.
 - **코드 고친 뒤**: 로컬에서 점검 PASS와 주요 페이지(홈, 리우, 애틀랜타, 서울, 공통 팁)를 확인한 뒤 push. push하면 바로 공개된다.
 
 ## 하지 않기로 한 것 (그리고 이유)

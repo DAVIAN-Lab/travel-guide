@@ -26,6 +26,7 @@ function Resolve-ExactPath([string]$rel) {
   $cur = $root
   foreach ($seg in ($rel -split '/' | Where-Object { $_ -ne '' })) {
     if ($seg -eq '.' -or $seg -eq '..' -or $seg.IndexOfAny([char[]]'*?\:') -ge 0) { return $null }
+    if ($seg -like '.git*' -and $seg -ne '.gitattributes') { return $null }  # Pages does not serve .git
     if (-not [System.IO.Directory]::Exists($cur)) { return $null }
     $hit = $null
     foreach ($e in [System.IO.Directory]::EnumerateFileSystemEntries($cur, $seg)) {
@@ -42,7 +43,7 @@ function Send([System.Net.HttpListenerResponse]$res, [int]$code, [string]$type, 
   $res.ContentType = $type
   $res.Headers['Cache-Control'] = 'no-store'
   $res.ContentLength64 = $body.Length
-  if ($body.Length -gt 0) { $res.OutputStream.Write($body, 0, $body.Length) }
+  if ($body.Length -gt 0 -and $req.HttpMethod -ne 'HEAD') { $res.OutputStream.Write($body, 0, $body.Length) }
   $res.Close()
 }
 
@@ -58,14 +59,14 @@ while ($listener.IsListening) {
   try {
     $path = [System.Uri]::UnescapeDataString($req.Url.AbsolutePath)
     if ($path -eq '/' -or $path -eq '/travel-guide') {
-      $res.Redirect($base); $res.Close(); continue
+      $res.Redirect($base + $req.Url.Query); $res.Close(); continue
     }
     if (-not $path.StartsWith($base)) {
       Send $res 404 'text/plain; charset=utf-8' ([System.Text.Encoding]::UTF8.GetBytes('not found')); continue
     }
     $file = Resolve-ExactPath $path.Substring($base.Length)
     if ($null -ne $file -and [System.IO.Directory]::Exists($file)) {
-      if (-not $path.EndsWith('/')) { $res.Redirect($path + '/'); $res.Close(); continue }
+      if (-not $path.EndsWith('/')) { $res.Redirect($req.Url.AbsolutePath + '/' + $req.Url.Query); $res.Close(); continue }
       $file = Resolve-ExactPath ($path.Substring($base.Length) + 'index.html')
     }
     if ($null -eq $file -or -not [System.IO.File]::Exists($file)) {
@@ -78,7 +79,7 @@ while ($listener.IsListening) {
     if ($null -eq $type) { $type = 'application/octet-stream' }
     Send $res 200 $type ([System.IO.File]::ReadAllBytes($file))
   } catch {
-    try { Send $res 500 'text/plain; charset=utf-8' ([System.Text.Encoding]::UTF8.GetBytes('error')) } catch {}
+    try { Send $res 500 'text/plain; charset=utf-8' ([System.Text.Encoding]::UTF8.GetBytes('error')) } catch { try { $res.Abort() } catch {} }
     Write-Host "500 $($req.Url.AbsolutePath): $_"
   }
 }

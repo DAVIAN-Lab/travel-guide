@@ -40,6 +40,7 @@ leaflet.js, leaflet.css
   SHA-256: db49d009c841f5ca34a888c96511ae936fd9f5533e90d8b2c4d57596f4e5641a (js)
            a7837102824184820dfa198d1ebcd109ff6d0ff9a2672a074b9a1b4d147d04c6 (css)
   라이선스: BSD 2-Clause (아래 전문). css가 가리키는 images/는 쓰지 않아 복사하지 않았다 (기본 마커·레이어 버튼 미사용).
+  참고: 끝의 sourceMappingURL(.map)은 복사하지 않았다 (markdown-it과 같음).
 
 ------------------------------------------------------------------------
 markdown-it 라이선스 (MIT)

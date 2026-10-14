@@ -1,6 +1,6 @@
 // 화면. 모든 함수는 { html, title, mount } 를 돌려준다. 문자열 조립은 html``(자동 이스케이프)로만.
 import { html, raw, str } from './html.mjs';
-import { REPO, pageHref, latest, tagEdition, slugify, placePoints } from './parse.mjs';
+import { REPO, pageHref, latest, tagEdition, editionKey, slugify, placePoints } from './parse.mjs';
 import { search } from './search.mjs';
 
 const SITE = 'DAVIAN 출장 가이드';
@@ -51,7 +51,7 @@ function shell(site, r, ctx, main, { current = '', tab = '', wide = false } = {}
 </header>
 <div class="layout">
   <aside id="drawer" class="drawer"><nav class="drawer-tabs" aria-label="메뉴">${nav('./', '지도', 'home')}${nav('?p=general', '공통 팁', 'general')}${nav('?p=conferences', '학회', 'conferences')}</nav>${tree(site, current)}</aside>
-  <main id="main" class="${wide ? 'wide' : ''}">${main}</main>
+  <main id="main" class="${wide ? 'wide' : ''}" tabindex="-1">${main}</main>
 </div>
 <footer class="foot">
   <a href="${REPO}">GitHub 원문</a>
@@ -69,25 +69,35 @@ function fmtDate(httpDate) {
   return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+export function closeDrawer() {
+  document.body.classList.remove('drawer-open');
+  document.querySelector('.menu')?.setAttribute('aria-expanded', 'false');
+}
+
 function mountShell(root, ctx) {
   const btn = root.querySelector('.menu');
+  const drawer = root.querySelector('#drawer');
+  closeDrawer();
   btn?.addEventListener('click', () => {
     const open = document.body.classList.toggle('drawer-open');
     btn.setAttribute('aria-expanded', String(open));
+    if (open) drawer.querySelector('a')?.focus();
   });
-  document.body.classList.remove('drawer-open');
+  for (const el of [btn, drawer]) {
+    el?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !document.body.classList.contains('drawer-open')) return;
+      closeDrawer();
+      btn.focus();
+    });
+  }
   root.querySelector('.reload')?.addEventListener('click', () => ctx.reload());
-  // 입력할 때마다 결과만 바꾼다 (입력창은 그대로라 포커스·한글 조합이 유지된다).
+  // 입력할 때마다 결과만 바꾼다 (입력창은 그대로라 포커스·한글 조합이 유지된다). Enter와 돋보기는 submit 하나로.
   const form = root.querySelector('form.search');
   const input = form?.querySelector('input');
   input?.addEventListener('input', () => ctx.onSearch(input.value, false));
-  input?.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
-    ctx.onSearch(input.value, true);
-  });
   form?.addEventListener('submit', (e) => {
     e.preventDefault();
-    if (e.submitter) ctx.onSearch(input.value, true);  // 돋보기 버튼. Enter는 위 keydown이 처리
+    ctx.onSearch(input.value, true);
   });
   for (const b of root.querySelectorAll('button[data-copy]')) {
     b.addEventListener('click', async () => {
@@ -109,7 +119,7 @@ export function page(site, r, ctx) {
   return {
     title: v.title,
     html: shell(site, r, ctx, v.main, v.opts),
-    mount: (root) => { mountShell(root, ctx); v.mount?.(root); },
+    mount: (root) => { mountShell(root, ctx); return v.mount?.(root); },  // 돌려준 함수는 다음 화면 전에 불린다
   };
 }
 
@@ -141,12 +151,19 @@ function home(site) {
     <ul class="home-list">${site.countries.map((c) => html`<li><a href="${pageHref(c.entry.id)}">${c.entry.ko}</a>:
       ${c.cities.map((ct, i) => html`${i ? ' · ' : ''}<a href="${pageHref(ct.entry.id)}" class="${ct.doc?.tags.length ? 'has' : ''}">${ct.entry.ko}</a>`)}</li>`)}</ul>
   </section>`;
-  // 지도는 글이 그려진 다음에 불러온다 (폰에서 글 먼저).
+  // 지도는 글이 그려진 다음에 불러온다 (폰에서 글 먼저). 뒤로 가기로 돌아왔으면 지도가 들어와
+  // 페이지가 길어진 뒤 저장된 스크롤 위치를 다시 맞춘다 (그사이 사용자가 움직였으면 그대로 둔다).
   const mount = (root) => {
     const slot = root.querySelector('#map-slot');
-    setTimeout(() => import('./map.mjs').then((m) => m.mountMap(slot, site)).catch((e) => {
-      slot.innerHTML = str(html`<p class="muted">지도를 불러오지 못했습니다 (${e.message}).</p>`);
-    }), 0);
+    const saved = history.state?.scrollY;
+    setTimeout(() => {
+      const at = window.scrollY;
+      import('./map.mjs').then((m) => m.mountMap(slot, site)).then(() => {
+        if (typeof saved === 'number' && slot.isConnected && window.scrollY === at) window.scrollTo(0, saved);
+      }).catch((e) => {
+        slot.innerHTML = str(html`<p class="muted">지도를 불러오지 못했습니다 (${e.message}).</p>`);
+      });
+    }, 0);
   };
   return { title: '', main, mount, opts: { tab: 'home', wide: true } };
 }
@@ -254,11 +271,12 @@ function placeMapBlock(site, doc) {
     <div class="placemap-box" hidden></div>
     ${unpinned.length ? html`<p class="placemap-rest" hidden>지도에 없는 장소: ${unpinned.map((p, i) => html`${i ? ' · ' : ''}<a href="${pageHref(doc.id, `#${p.slug}`)}">${p.ko}</a>`)}</p>` : ''}
   </section>`;
+  // 불러오는 중에 접었다 펴도 지도는 하나만 만든다. 펼칠 때마다 크기를 다시 재고 핀에 맞춘다.
   const mount = (root) => {
     const sec = root.querySelector('.placemap');
     const btn = sec?.querySelector('.placemap-open');
     const box = sec?.querySelector('.placemap-box');
-    let map = null;
+    let made = null;
     btn?.addEventListener('click', async () => {
       const open = box.hidden;
       box.hidden = !open;
@@ -266,11 +284,14 @@ function placeMapBlock(site, doc) {
       btn.setAttribute('aria-expanded', String(open));
       btn.textContent = open ? '지도 접기' : '지도 펼치기';
       if (!open) return;
-      if (map) { map.invalidateSize(); return; }
-      box.textContent = '지도를 불러오는 중…';
-      try { map = await (await import('./map.mjs')).mountPlaceMap(box, doc, pinned); }
-      catch (e) { box.textContent = `지도를 불러오지 못했습니다 (${e.message}).`; }
+      if (!made) {
+        box.textContent = '지도를 불러오는 중…';
+        made = import('./map.mjs').then((m) => m.mountPlaceMap(box, doc, pinned));
+        made.catch((e) => { made = null; box.textContent = `지도를 불러오지 못했습니다 (${e.message}).`; });
+      }
+      try { const m = await made; if (!box.hidden) m.fit(); } catch { /* 위에서 알림 */ }
     });
+    return () => made?.then((m) => m.remove(), () => {});
   };
   return { html: out, mount };
 }
@@ -309,7 +330,7 @@ export function searchMain(site, q) {
     <h1>"${q}" 검색 결과 ${total}개</h1>
     ${total > results.length ? html`<p class="muted">앞의 ${results.length}개만 보여 줍니다. 검색어를 더 붙여 보세요.</p>` : ''}
     ${total ? '' : html`<p class="muted">찾지 못했습니다. 한 단어로 줄이거나 영어 이름으로 찾아보세요.</p>`}
-    <ul class="results">${results.map((x) => html`<li class="result ${x.kind}">
+    <ul class="results">${results.map((x) => html`<li class="result">
       <a class="hit" href="${x.href}"><span class="kind">${KIND[x.kind]}</span> <b>${x.title || x.text.slice(0, 60)}</b></a>
       ${x.gmap ? html` <a class="gmap" href="${x.gmap}" target="_blank" rel="noopener">${x.gmapLabel}</a>` : ''}
       <span class="crumbs">${[...x.crumbs, x.where || x.sub || ''].filter(Boolean).join(' › ')}</span>
@@ -323,7 +344,7 @@ export function searchMain(site, q) {
 function editionsOf(site) {
   const map = new Map();
   const get = (series, year) => {
-    const key = `${series} ${year}`;
+    const key = editionKey(series, year);
     if (!map.has(key)) map.set(key, { key, series, year, places: [], tags: [] });
     return map.get(key);
   };
