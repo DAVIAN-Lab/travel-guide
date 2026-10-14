@@ -266,14 +266,10 @@ details[open] { padding-bottom: 8px; }
 .placemap { border: 1px solid var(--hairline); border-radius: var(--r-md); padding: 12px 20px; margin: 20px 0; }
 .placemap-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .placemap-head .muted { font-size: 14px; }
-.placemap-open {
-  margin-left: auto; min-height: 40px; padding: 0 18px; border: 1px solid var(--ink); background: var(--canvas);
-  border-radius: var(--r-full); font-size: 14px; font-weight: 600; cursor: pointer;
-}
-.placemap-open[aria-expanded="true"] { background: var(--ink); color: #fff; }
-.placemap-note { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
 .placemap-box { position: relative; z-index: 0; height: 360px; margin-top: 12px; border-radius: var(--r-md); overflow: hidden; background: var(--soft); font-size: 14px; color: var(--muted); }
-.placemap-box[hidden], .placemap-rest[hidden] { display: none; }
+.placemap-box:not(.leaflet-container) { padding: 16px; }  /* 불러오는 중·실패 안내 */
+.placemap-touch { display: none; }
+@media (pointer: coarse) { .placemap-touch { display: inline; } }
 .placemap-rest { font-size: 14px; color: var(--muted); margin: 10px 0 4px; }
 .placemap .leaflet-container { font: inherit; background: var(--soft); }  /* leaflet.css가 나중에 붙어 회색을 덮어쓴다 */
 .placemap .leaflet-popup-content { font-size: 14px; line-height: 1.5; }

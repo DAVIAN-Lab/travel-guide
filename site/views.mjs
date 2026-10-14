@@ -260,38 +260,21 @@ function sections(doc, after0) {
   return placed ? out : [after0, ...out];
 }
 
-// 버튼을 눌러야 Leaflet과 지도 타일을 불러온다. 핀 없는 장소(검색 링크·폰 공유 링크)는 아래 목록으로.
+// 핀이 있는 도시는 페이지를 열면 바로 지도를 그린다 (Leaflet은 그때 늦게 불러온다).
+// 핀 없는 장소(검색 링크·폰 공유 링크)는 아래 목록으로. 상자 높이가 고정이라 지도가 들어와도 글이 밀리지 않는다.
 function placeMapBlock(site, doc) {
   const { pinned, unpinned } = doc.kind === 'city' ? placePoints(site, doc) : { pinned: [] };
   if (!PLACE_MAP || !pinned.length) return { html: '' };
   const out = html`<section class="placemap">
-    <div class="placemap-head"><b>장소 지도</b> <span class="muted">핀 ${pinned.length}곳</span>
-      <button type="button" class="placemap-open" aria-expanded="false">지도 펼치기</button></div>
-    <p class="placemap-note">누르면 OpenStreetMap에서 지도 그림을 불러옵니다.</p>
-    <div class="placemap-box" hidden></div>
-    ${unpinned.length ? html`<p class="placemap-rest" hidden>지도에 없는 장소: ${unpinned.map((p, i) => html`${i ? ' · ' : ''}<a href="${pageHref(doc.id, `#${p.slug}`)}">${p.ko}</a>`)}</p>` : ''}
+    <div class="placemap-head"><b>장소 지도</b> <span class="muted">핀 ${pinned.length}곳<span class="placemap-touch"> · 두 손가락으로 이동·확대</span></span></div>
+    <div class="placemap-box">지도를 불러오는 중…</div>
+    ${unpinned.length ? html`<p class="placemap-rest">지도에 없는 장소: ${unpinned.map((p, i) => html`${i ? ' · ' : ''}<a href="${pageHref(doc.id, `#${p.slug}`)}">${p.ko}</a>`)}</p>` : ''}
   </section>`;
-  // 불러오는 중에 접었다 펴도 지도는 하나만 만든다. 펼칠 때마다 크기를 다시 재고 핀에 맞춘다.
   const mount = (root) => {
-    const sec = root.querySelector('.placemap');
-    const btn = sec?.querySelector('.placemap-open');
-    const box = sec?.querySelector('.placemap-box');
-    let made = null;
-    btn?.addEventListener('click', async () => {
-      const open = box.hidden;
-      box.hidden = !open;
-      for (const x of sec.querySelectorAll('.placemap-rest')) x.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
-      btn.textContent = open ? '지도 접기' : '지도 펼치기';
-      if (!open) return;
-      if (!made) {
-        box.textContent = '지도를 불러오는 중…';
-        made = import('./map.mjs').then((m) => m.mountPlaceMap(box, doc, pinned));
-        made.catch((e) => { made = null; box.textContent = `지도를 불러오지 못했습니다 (${e.message}).`; });
-      }
-      try { const m = await made; if (!box.hidden) m.fit(); } catch { /* 위에서 알림 */ }
-    });
-    return () => made?.then((m) => m.remove(), () => {});
+    const box = root.querySelector('.placemap-box');
+    const made = import('./map.mjs').then((m) => m.mountPlaceMap(box, doc, pinned));
+    made.catch((e) => { if (box.isConnected) box.textContent = `지도를 불러오지 못했습니다 (${e.message}).`; });
+    return () => made.then((m) => m.remove(), () => {});
   };
   return { html: out, mount };
 }

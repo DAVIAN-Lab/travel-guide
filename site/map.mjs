@@ -270,7 +270,7 @@ export async function mountMap(el, site) {
 }
 
 // ---------- 도시 페이지 장소 지도 (Leaflet + OpenStreetMap) ----------
-// 사이트의 유일한 외부 요청. 버튼을 눌렀을 때만 불러오고, 타일을 미리 받거나 저장하지 않는다.
+// 사이트의 유일한 외부 요청. 핀이 있는 도시 페이지를 열 때만 불러오고, 타일을 미리 받거나 저장하지 않는다.
 // OSM이 접속을 막으면 타일 대신 안내 그림이 오므로(tileerror가 안 남) views.mjs의 PLACE_MAP을 false로 바꾼다.
 const TILES = {
   url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -289,13 +289,15 @@ function loadLeaflet() {
   return leaflet;
 }
 
-// 위치는 fit()이 정한다 (접힌 채 만들어졌을 수 있어서 펼칠 때 부른다). 화면을 떠날 때 remove()로 창 이벤트까지 정리.
-// Leaflet은 툴팁·팝업 문자열을 HTML로 넣으므로 모두 이스케이프한다.
+// 화면을 떠날 때 remove()로 창 이벤트까지 정리한다. Leaflet은 툴팁·팝업 문자열을 HTML로 넣으므로 모두 이스케이프한다.
 export async function mountPlaceMap(el, doc, pinned) {
   await loadLeaflet();
+  if (!el.isConnected) return { remove() {} };  // 불러오는 사이 다른 화면으로 갔다
   const L = window.L;
   el.innerHTML = '';
-  const map = L.map(el, { attributionControl: true });
+  // 폰에서는 한 손가락 끌기를 꺼서 지도 위에서도 페이지가 스크롤되게 하고, 두 손가락으로 움직이고 확대한다.
+  const touch = window.matchMedia('(pointer: coarse)').matches;
+  const map = L.map(el, { attributionControl: true, dragging: !touch });
   L.tileLayer(TILES.url, { maxZoom: 19, attribution: TILES.attribution, referrerPolicy: 'strict-origin-when-cross-origin' }).addTo(map);
   const pts = [];
   for (const { place: p, lat, lng } of pinned) {
@@ -305,10 +307,13 @@ export async function mountPlaceMap(el, doc, pinned) {
       .bindPopup(popup).bindTooltip(esc(p.ko), { direction: 'top', offset: [0, -8] }).addTo(map);
     pts.push([lat, lng]);
   }
-  const fit = () => {
-    map.invalidateSize();
-    if (pts.length === 1) map.setView(pts[0], 15);
-    else map.fitBounds(pts, { padding: [36, 36], maxZoom: 16 });
-  };
-  return { fit, remove: () => map.remove() };
+  if (pts.length === 1) map.setView(pts[0], 15);
+  else map.fitBounds(pts, { padding: [36, 36], maxZoom: 16 });
+  // 지도가 본문 중간에 늘 있으니, 휠로는 처음 크기보다 더 축소하지 않고 그때부터는 페이지를 스크롤한다 (홈 세계지도와 같다).
+  // −버튼으로는 더 멀리 볼 수 있다. Leaflet 휠 처리보다 먼저(capture) 가로챈다.
+  const floor = map.getZoom();
+  el.addEventListener('wheel', (e) => {
+    if (e.deltaY > 0 && map.getZoom() <= floor) e.stopImmediatePropagation();
+  }, { capture: true });
+  return { remove: () => map.remove() };
 }

@@ -35,7 +35,7 @@ countries-110m.json, countries-50m.json
   라이선스: ISC (아래 전문). 원 데이터는 Natural Earth (퍼블릭 도메인).
 
 leaflet.js, leaflet.css
-  패키지: leaflet@1.9.4  경로: dist/leaflet.js, dist/leaflet.css  (도시 페이지 장소 지도. 버튼을 눌렀을 때만 불러온다)
+  패키지: leaflet@1.9.4  경로: dist/leaflet.js, dist/leaflet.css  (도시 페이지 장소 지도. 핀이 있는 도시 페이지에서만 불러온다)
   크기: 147552 B, 14806 B
   SHA-256: db49d009c841f5ca34a888c96511ae936fd9f5533e90d8b2c4d57596f4e5641a (js)
            a7837102824184820dfa198d1ebcd109ff6d0ff9a2672a074b9a1b4d147d04c6 (css)
