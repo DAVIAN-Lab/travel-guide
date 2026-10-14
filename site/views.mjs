@@ -1,9 +1,11 @@
 // 화면. 모든 함수는 { html, title, mount } 를 돌려준다. 문자열 조립은 html``(자동 이스케이프)로만.
 import { html, raw, str } from './html.mjs';
-import { REPO, pageHref, latest, tagEdition, slugify } from './parse.mjs';
+import { REPO, pageHref, latest, tagEdition, slugify, placePoints } from './parse.mjs';
 import { search } from './search.mjs';
 
 const SITE = 'DAVIAN 출장 가이드';
+// 도시 페이지 장소 지도(OpenStreetMap 타일). OSM이 접속을 막으면 false로 바꾼다 (버튼이 사라진다).
+const PLACE_MAP = true;
 const editUrl = (doc) => `${REPO}/edit/main/${doc.path}`;
 const blobUrl = (doc, line) => `${REPO}/blob/main/${doc.path}${line ? `#L${line}` : ''}`;
 
@@ -241,7 +243,40 @@ function sections(doc, after0) {
   return placed ? out : [after0, ...out];
 }
 
+// 버튼을 눌러야 Leaflet과 지도 타일을 불러온다. 핀 없는 장소(검색 링크·폰 공유 링크)는 아래 목록으로.
+function placeMapBlock(site, doc) {
+  const { pinned, unpinned } = doc.kind === 'city' ? placePoints(site, doc) : { pinned: [] };
+  if (!PLACE_MAP || !pinned.length) return { html: '' };
+  const out = html`<section class="placemap">
+    <div class="placemap-head"><b>장소 지도</b> <span class="muted">핀 ${pinned.length}곳</span>
+      <button type="button" class="placemap-open" aria-expanded="false">지도 펼치기</button></div>
+    <p class="placemap-note">누르면 OpenStreetMap에서 지도 그림을 불러옵니다.</p>
+    <div class="placemap-box" hidden></div>
+    ${unpinned.length ? html`<p class="placemap-rest" hidden>지도에 없는 장소: ${unpinned.map((p, i) => html`${i ? ' · ' : ''}<a href="${pageHref(doc.id, `#${p.slug}`)}">${p.ko}</a>`)}</p>` : ''}
+  </section>`;
+  const mount = (root) => {
+    const sec = root.querySelector('.placemap');
+    const btn = sec?.querySelector('.placemap-open');
+    const box = sec?.querySelector('.placemap-box');
+    let map = null;
+    btn?.addEventListener('click', async () => {
+      const open = box.hidden;
+      box.hidden = !open;
+      for (const x of sec.querySelectorAll('.placemap-rest')) x.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      btn.textContent = open ? '지도 접기' : '지도 펼치기';
+      if (!open) return;
+      if (map) { map.invalidateSize(); return; }
+      box.textContent = '지도를 불러오는 중…';
+      try { map = await (await import('./map.mjs')).mountPlaceMap(box, doc, pinned); }
+      catch (e) { box.textContent = `지도를 불러오지 못했습니다 (${e.message}).`; }
+    });
+  };
+  return { html: out, mount };
+}
+
 function docPage(site, doc) {
+  const placeMap = placeMapBlock(site, doc);
   const title = doc.kind === 'general' ? '공통 팁' : shortName(doc);
   const en = doc.kind === 'general' ? '' : doc.en;
   const main = html`<article class="doc ${doc.kind}">
@@ -253,9 +288,10 @@ function docPage(site, doc) {
     ${skeleton(doc)}
     ${departureLine(site, doc)}
     ${doc.missing ? '' : html`<div class="pre">${raw(doc.preHtml)}</div>`}
+    ${placeMap.html}
     ${sections(doc, countryFacts(doc))}
   </article>`;
-  return { title, main, opts: { current: doc.id, tab: doc.kind === 'general' ? 'general' : '' } };
+  return { title, main, mount: placeMap.mount, opts: { current: doc.id, tab: doc.kind === 'general' ? 'general' : '' } };
 }
 
 // ---------- 검색 ----------

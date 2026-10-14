@@ -251,3 +251,19 @@ details[open] { padding-bottom: 8px; }
 .foot a { color: var(--ink); }
 .foot button { border: 1px solid var(--ink); background: var(--canvas); border-radius: var(--r-sm); padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 500; }
 #app.busy { opacity: .6; pointer-events: none; }
+
+/* 도시 페이지 장소 지도 (Leaflet) */
+.placemap { border: 1px solid var(--hairline); border-radius: var(--r-md); padding: 12px 20px; margin: 20px 0; }
+.placemap-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.placemap-head .muted { font-size: 14px; }
+.placemap-open {
+  margin-left: auto; min-height: 40px; padding: 0 18px; border: 1px solid var(--ink); background: var(--canvas);
+  border-radius: var(--r-full); font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.placemap-open[aria-expanded="true"] { background: var(--ink); color: #fff; }
+.placemap-note { font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+.placemap-box { height: 360px; margin-top: 12px; border-radius: var(--r-md); overflow: hidden; background: var(--soft); font-size: 14px; color: var(--muted); }
+.placemap-box[hidden], .placemap-rest[hidden] { display: none; }
+.placemap-rest { font-size: 14px; color: var(--muted); margin: 10px 0 4px; }
+.placemap .leaflet-container { font: inherit; }
+.placemap .leaflet-popup-content { font-size: 14px; line-height: 1.5; }

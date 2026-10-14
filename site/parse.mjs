@@ -546,6 +546,18 @@ export function cityPoint(site, id) {
   return c && Number.isFinite(c.lat) && Number.isFinite(c.lng) && Math.abs(c.lat) <= 90 && Math.abs(c.lng) <= 180 ? c : null;
 }
 
+// 도시 문서의 장소를 핀이 있는 것(places.json 좌표)과 없는 것(검색 링크·폰 공유 링크)으로 나눈다.
+export function placePoints(site, doc) {
+  const pinned = [], unpinned = [];
+  for (const p of doc.places) {
+    if (p.kind === 'site' || p.archive) continue;
+    const v = p.kind === 'share' ? site.geo?.places?.[placeKey(p.href)] : null;
+    if (Array.isArray(v) && v.length === 2 && v.every(Number.isFinite)) pinned.push({ place: p, lat: v[0], lng: v[1] });
+    else unpinned.push(p);
+  }
+  return { pinned, unpinned };
+}
+
 export function km(a, b) {
   const r = Math.PI / 180;
   const x = Math.sin(((b.lat - a.lat) * r) / 2) ** 2

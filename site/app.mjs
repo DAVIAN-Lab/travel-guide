@@ -39,15 +39,15 @@ function render() {
   v.mount?.(app);
   const y = history.state?.scrollY;
   if (typeof y === 'number') window.scrollTo(0, y);
-  else if (!(r.hash && jumpTo(r.hash, false))) window.scrollTo(0, 0);
+  else if (!(r.hash && jumpTo(r.hash))) window.scrollTo(0, 0);
 }
 
 // id는 숫자로 시작할 수 있어 querySelector 대신 getElementById. 접힌 섹션은 펼친다.
-function jumpTo(id, smooth) {
+function jumpTo(id) {
   const el = document.getElementById(id);
   if (!el) return false;
   for (let p = el.parentElement; p; p = p.parentElement) if (p.tagName === 'DETAILS') p.open = true;
-  el.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+  el.scrollIntoView({ block: 'start' });
   return true;
 }
 
@@ -60,7 +60,7 @@ export function navigate(href, { replace = false } = {}) {
   const same = to.search === location.search && to.pathname === location.pathname;
   saveScroll();
   try { history[replace ? 'replaceState' : 'pushState']({}, '', to); } catch { location.href = to; return; }
-  if (same && to.hash) { jumpTo(route().hash, true); return; }
+  if (same && to.hash) { jumpTo(route().hash); return; }
   render();
 }
 
@@ -105,7 +105,7 @@ document.addEventListener('click', (e) => {
 });
 
 window.addEventListener('popstate', () => render());
-window.addEventListener('hashchange', () => site && jumpTo(route().hash, true));
+window.addEventListener('hashchange', () => site && jumpTo(route().hash));
 history.scrollRestoration = 'manual';
 
 try {

@@ -172,3 +172,42 @@ export async function mountMap(el, site) {
   ro.observe(box);
   await show();
 }
+
+// ---------- 도시 페이지 장소 지도 (Leaflet + OpenStreetMap) ----------
+// 사이트의 유일한 외부 요청. 버튼을 눌렀을 때만 불러오고, 타일을 미리 받거나 저장하지 않는다.
+// OSM이 접속을 막으면 타일 대신 안내 그림이 오므로(tileerror가 안 남) views.mjs의 PLACE_MAP을 false로 바꾼다.
+export const TILES = {
+  url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> 기여자',
+};
+let leaflet = null;
+
+function loadLeaflet() {
+  if (!leaflet) {
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = new URL('leaflet.css', VENDOR).href;
+    document.head.append(css);
+    leaflet = script('leaflet.js').catch((e) => { leaflet = null; css.remove(); throw e; });
+  }
+  return leaflet;
+}
+
+export async function mountPlaceMap(el, doc, pinned) {
+  await loadLeaflet();
+  const L = window.L;
+  el.innerHTML = '';
+  const map = L.map(el, { scrollWheelZoom: false, attributionControl: true });
+  L.tileLayer(TILES.url, { maxZoom: 19, attribution: TILES.attribution, referrerPolicy: 'strict-origin-when-cross-origin' }).addTo(map);
+  const pts = [];
+  for (const { place: p, lat, lng } of pinned) {
+    const popup = str(html`<b>${p.ko}</b>${p.en ? html`<br><span class="muted">${p.en}</span>` : ''}<br>
+      <a href="${p.href}" target="_blank" rel="noopener">구글맵</a> · <a href="${pageHref(doc.id, `#${p.slug}`)}">본문의 후기</a>`);
+    L.circleMarker([lat, lng], { radius: 9, color: '#fff', weight: 2, fillColor: '#ff385c', fillOpacity: 1 })
+      .bindPopup(popup).bindTooltip(p.ko, { direction: 'top', offset: [0, -8] }).addTo(map);
+    pts.push([lat, lng]);
+  }
+  if (pts.length === 1) map.setView(pts[0], 15);
+  else map.fitBounds(pts, { padding: [36, 36], maxZoom: 16 });
+  return map;
+}
