@@ -1,0 +1,4 @@
+# 마크다운은 LF로 통일 (사이트 해석기와 GitHub 줄 번호가 같게)
+*.md text eol=lf
+# 복사해 둔 라이브러리·지도 데이터는 바이트 그대로 (VENDORED.txt의 SHA-256과 맞아야 함)
+site/vendor/** -text

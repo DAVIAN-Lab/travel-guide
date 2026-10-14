@@ -1,0 +1,36 @@
+복사해 둔 외부 파일. 손대지 않는다 (바꾸면 아래 SHA-256이 어긋난다).
+버전을 올릴 때는 같은 경로의 공식 패키지 파일로 통째로 바꾸고 이 표를 고친다.
+출처는 모두 https://cdn.jsdelivr.net/npm/<패키지>@<버전>/<경로> (npm 공식 패키지 그대로).
+
+markdown-it.esm.min.mjs
+  패키지: markdown-it@15.0.2  경로: dist/browser/markdown-it.esm.min.mjs
+  크기: 138276 B
+  SHA-256: 85feb50fd6ce1b7c49acb02b0337eb622ecc4fc2ed4ae0dcbb8c084556d463b6
+  라이선스: MIT (아래 전문)
+  참고: 끝의 sourceMappingURL(.map)은 복사하지 않았다. 개발자 도구의 .map 404는 무시해도 된다.
+
+------------------------------------------------------------------------
+markdown-it 라이선스 (MIT)
+
+Copyright (c) 2014 Vitaly Puzrin, Alex Kocharin.
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
