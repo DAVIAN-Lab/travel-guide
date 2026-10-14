@@ -23,7 +23,7 @@ GitHub Pages는 응답을 10분 캐시한다(`max-age=600`, 바꿀 수 없음). 
 | `map.mjs` | 홈 세계지도. d3-geo + topojson, 홈에서만 늦게 불러온다 |
 | `search.mjs` | 검색: 부분 일치, 악센트 무시, 한글 자모 분해, 도시 별칭 |
 | `html.mjs` | 자동 이스케이프 템플릿 |
-| `style.css` | 스타일. 시스템 글꼴, 다크 모드 |
+| `style.css` | 스타일. 흰 바탕 + 강조색 하나(#ff385c), 시스템 글꼴. 야간 모드 없음 |
 | `check.html`, `check.mjs` | 점검 페이지: 해석기 함정 시험 + 실제 콘텐츠 형식 검사 |
 | `serve.ps1` | 로컬 미리보기 서버 (관리자 권한 불필요) |
 | `vendor/` | 복사해 둔 라이브러리. 출처·SHA-256·라이선스는 `vendor/VENDORED.txt` |

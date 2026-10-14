@@ -19,6 +19,11 @@ function shortName(doc) {
   return doc?.entry?.ko || doc?.ko || doc?.title || doc?.id || '';
 }
 
+const ICON = {
+  menu: '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>',
+  search: '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="2.6" fill="none"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>',
+};
+
 function countBadge(n) {
   return n ? html`<span class="n" title="후기 ${n}개">●${n}</span>` : '';
 }
@@ -34,15 +39,16 @@ function shell(site, r, ctx, main, { current = '', tab = '' } = {}) {
   const nav = (href, label, key) => html`<a href="${href}"${raw(tab === key ? ' aria-current="page"' : '')}>${label}</a>`;
   return str(html`
 <header class="top">
-  <button type="button" class="menu" aria-label="국가·도시 목록" aria-controls="drawer" aria-expanded="false">☰</button>
+  <button type="button" class="menu" aria-label="국가·도시 목록" aria-controls="drawer" aria-expanded="false">${raw(ICON.menu)}</button>
   <a class="brand" href="./">${SITE}</a>
   <nav class="tabs">${nav('./', '지도', 'home')}${nav('?p=general', '공통 팁', 'general')}${nav('?p=conferences', '학회', 'conferences')}</nav>
   <form class="search" role="search" action="./">
-    <input type="search" name="q" value="${r.q}" placeholder="검색: 교통카드, 리우 숙소…" aria-label="검색" autocomplete="off" enterkeyhint="search">
+    <input type="search" name="q" value="${r.q}" placeholder="도시, 장소, 팁 검색" aria-label="검색" autocomplete="off" enterkeyhint="search">
+    <button type="submit" class="orb" aria-label="검색">${raw(ICON.search)}</button>
   </form>
 </header>
 <div class="layout">
-  <aside id="drawer" class="drawer">${tree(site, current)}</aside>
+  <aside id="drawer" class="drawer"><nav class="drawer-tabs" aria-label="메뉴">${nav('./', '지도', 'home')}${nav('?p=general', '공통 팁', 'general')}${nav('?p=conferences', '학회', 'conferences')}</nav>${tree(site, current)}</aside>
   <main id="main">${main}</main>
 </div>
 <footer class="foot">
@@ -77,7 +83,10 @@ function mountShell(root, ctx) {
     if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
     ctx.onSearch(input.value, true);
   });
-  form?.addEventListener('submit', (e) => e.preventDefault());
+  form?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (e.submitter) ctx.onSearch(input.value, true);  // 돋보기 버튼. Enter는 위 keydown이 처리
+  });
   for (const b of root.querySelectorAll('button[data-copy]')) {
     b.addEventListener('click', async () => {
       try { await navigator.clipboard.writeText(b.dataset.copy); b.classList.add('done'); }
@@ -122,10 +131,11 @@ function home(site) {
   const main = html`
   <section class="home">
     <p class="stats">${s.countries}개국 · ${s.cities}개 도시 · 후기 ${s.tags}개 · 학회 ${s.editions}회 (${s.from}–${s.to})</p>
+    <nav class="home-quick chips" aria-label="바로 가기"><a href="?p=general">공통 팁</a><a href="?p=conferences">학회 목록</a><a href="#국가도시">국가·도시 전체</a></nav>
     <h2>후기가 있는 곳</h2>
     <ul class="cards">${withTags.map(card)}</ul>
     <div id="map-slot"></div>
-    <h2 class="list-title">국가·도시</h2>
+    <h2 class="list-title" id="국가도시">국가·도시</h2>
     <ul class="home-list">${site.countries.map((c) => html`<li><a href="${pageHref(c.entry.id)}">${c.entry.ko}</a>:
       ${c.cities.map((ct, i) => html`${i ? ' · ' : ''}<a href="${pageHref(ct.entry.id)}" class="${ct.doc?.tags.length ? 'has' : ''}">${ct.entry.ko}</a>`)}</li>`)}</ul>
   </section>`;
@@ -178,7 +188,8 @@ function skeleton(doc) {
   return html`<aside class="banner">
     <p><b>아직 후기가 없습니다.</b> 아래는 사전 조사한 기본 정보입니다.
     ${eds.length ? `${eds.map((e) => e.label).join(' · ')}에 다녀오셨다면 한 줄 남겨 주세요.` : '다녀오셨다면 한 줄 남겨 주세요.'}</p>
-    <p class="actions">${eds.map((e) => html`<button type="button" data-copy="${tagText(e)}">꼬리표 복사 <code>${tagText(e).trim()}</code></button>`)}
+    ${eds.length ? html`<p class="copies"><span class="muted">꼬리표 복사</span> ${eds.map((e) => html`<button type="button" data-copy="${tagText(e)}" title="${tagText(e).trim()} 복사">${e.label}</button>`)}</p>` : ''}
+    <p class="actions">
       <a href="${editUrl(doc)}" target="_blank" rel="noopener">GitHub에서 수정</a> <span class="muted">반영까지 최대 10분</span></p>
   </aside>`;
 }
