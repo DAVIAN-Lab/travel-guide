@@ -20,11 +20,14 @@ GitHub Pages는 응답을 10분 캐시한다(`max-age=600`, 바꿀 수 없음). 
 | `app.mjs` | 불러오기, 주소 해석, 화면 전환, 스크롤 |
 | `parse.mjs` | 마크다운 → 문서 모델. DOM을 쓰지 않는 순수 함수 |
 | `views.mjs` | 화면 (트리, 홈, 문서) |
+| `map.mjs` | 홈 세계지도. d3-geo + topojson, 홈에서만 늦게 불러온다 |
 | `html.mjs` | 자동 이스케이프 템플릿 |
 | `style.css` | 스타일. 시스템 글꼴, 다크 모드 |
 | `check.html`, `check.mjs` | 점검 페이지: 해석기 함정 시험 + 실제 콘텐츠 형식 검사 |
 | `serve.ps1` | 로컬 미리보기 서버 (관리자 권한 불필요) |
 | `vendor/` | 복사해 둔 라이브러리. 출처·SHA-256·라이선스는 `vendor/VENDORED.txt` |
+| `data/cities.json` | 도시 도심 좌표 + 검색 별칭. 새 도시를 추가할 때 한 줄 (AGENTS.md §2.2) |
+| `data/places.json` | 구글맵 공유 링크별 장소 좌표. 폰 공유 링크는 `null` (AGENTS.md §2.4) |
 
 ## 자주 하는 일
 

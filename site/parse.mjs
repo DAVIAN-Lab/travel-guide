@@ -510,7 +510,61 @@ export async function loadSite(read) {
   };
   const [index, general] = await Promise.all([load('countries/README.md'), load('general.md')]);
   if (index.missing || index.countries.length === 0) throw new Error(index.error || '국가 목록이 비어 있습니다.');
+  const geo = Promise.all([readJson(read, 'site/data/cities.json'), readJson(read, 'site/data/places.json')]);
   const countries = await Promise.all(index.countries.map((c) => load(idToPath(c.id))));
   const cities = await Promise.all(countries.flatMap((d) => d.cities.map((c) => load(idToPath(c.id)))));
-  return crossCheck(buildSite(index, general, countries, cities));
+  const site = crossCheck(buildSite(index, general, countries, cities));
+  const [cj, pj] = await geo;
+  site.geo = { cities: cj.data || {}, places: pj.data || {}, errors: [cj.error, pj.error].filter(Boolean) };
+  return site;
+}
+
+async function readJson(read, path) {
+  const r = await read(path);
+  if (!r || typeof r.text !== 'string') return { data: null, error: `${path}을(를) 불러오지 못했습니다.` };
+  try { return { data: JSON.parse(r.text), error: '' }; }
+  catch (e) { return { data: null, error: `${path} JSON 형식 오류: ${e.message}` }; }
+}
+
+// 장소 좌표 키: 쿼리(?g_st= 등)를 뗀 scheme + host + path.
+export function placeKey(href) {
+  try { const u = new URL(href); return `${u.protocol}//${u.host}${u.pathname}`; } catch { return href; }
+}
+
+export function cityPoint(site, id) {
+  const c = site.geo?.cities?.[id];
+  return c && Number.isFinite(c.lat) && Number.isFinite(c.lng) && Math.abs(c.lat) <= 90 && Math.abs(c.lng) <= 180 ? c : null;
+}
+
+export function km(a, b) {
+  const r = Math.PI / 180;
+  const x = Math.sin(((b.lat - a.lat) * r) / 2) ** 2
+    + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(((b.lng - a.lng) * r) / 2) ** 2;
+  return 2 * 6371 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+// site/data/*.json 점검: 도시 좌표 누락, 공유 링크 좌표 누락·이상치, 안 쓰는 키.
+export function geoProblems(site) {
+  const out = [...(site.geo?.errors || []).map((msg) => ({ doc: null, line: 0, msg }))];
+  const ids = new Set();
+  for (const c of site.countries) for (const ct of c.cities) {
+    ids.add(ct.entry.id);
+    if (!cityPoint(site, ct.entry.id)) out.push({ doc: ct.doc, line: 0, msg: `site/data/cities.json에 "${ct.entry.id}" 좌표가 없습니다 (지도에 핀이 빠짐).` });
+  }
+  for (const id of Object.keys(site.geo?.cities || {})) if (!ids.has(id)) out.push({ doc: null, line: 0, msg: `site/data/cities.json의 "${id}"는 도시 목록에 없습니다.` });
+  const used = new Set();
+  for (const d of site.docs) for (const p of d.places) {
+    if (p.kind !== 'share') continue;
+    const key = placeKey(p.href);
+    used.add(key);
+    const places = site.geo?.places || {};
+    if (!(key in places)) { out.push({ doc: d, line: p.line, msg: `site/data/places.json에 "${key}" 좌표가 없습니다 (AGENTS.md §2.4).` }); continue; }
+    const v = places[key];
+    if (v === null) continue;
+    const center = d.kind === 'city' ? cityPoint(site, d.id) : null;
+    if (!Array.isArray(v) || v.length !== 2 || !v.every(Number.isFinite)) out.push({ doc: d, line: p.line, msg: `places.json "${key}" 값은 [위도, 경도] 또는 null이어야 합니다.` });
+    else if (center && km(center, { lat: v[0], lng: v[1] }) > 150) out.push({ doc: d, line: p.line, msg: `places.json "${key}"가 도시 중심에서 150km 넘게 떨어져 있습니다.` });
+  }
+  for (const key of Object.keys(site.geo?.places || {})) if (!used.has(key)) out.push({ doc: null, line: 0, msg: `site/data/places.json의 "${key}"를 쓰는 장소가 없습니다.` });
+  return out;
 }

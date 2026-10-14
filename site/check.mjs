@@ -1,6 +1,6 @@
 // 점검 페이지: 해석기 함정 시험 + 실제 콘텐츠 형식 검사. 결과는 탭 제목에 CHECK PASS / CHECK FAIL (n).
 import {
-  parseDoc, slugify, slugger, blankComments, TAG_RE, parseConferences, rewriteHref, loadSite, REPO,
+  parseDoc, slugify, slugger, blankComments, TAG_RE, parseConferences, rewriteHref, loadSite, geoProblems, placeKey, REPO,
 } from './parse.mjs';
 import { html, str } from './html.mjs';
 
@@ -88,6 +88,7 @@ const tests = [
   ['링크: 폴더는 GitHub tree로', () => eq(rewriteHref('../templates/', 'countries/README.md').href, `${REPO}/tree/main/templates/`)],
   ['링크: 국가 목록은 홈', () => eq(rewriteHref('countries/README.md', 'general.md').href, './')],
   ['링크: 외부 주소는 그대로', () => eq(rewriteHref('https://www.dayuse.com/', 'general.md'), { href: 'https://www.dayuse.com/', external: true })],
+  ['장소 좌표 키는 쿼리를 뗀다', () => eq(placeKey('https://maps.app.goo.gl/abc?g_st=ic'), 'https://maps.app.goo.gl/abc')],
 ];
 
 function runTests() {
@@ -121,7 +122,7 @@ function contentProblems(site) {
       if (q && !d.tables.some((t) => t.checklist)) add(d, q.line, '퀵 체크리스트 표의 열이 항목 / 상태 / 최근 확인이 아닙니다.');
     }
   }
-  return probs;
+  return [...probs, ...geoProblems(site)];
 }
 
 function stats(site) {

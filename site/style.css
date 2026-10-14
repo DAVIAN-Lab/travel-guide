@@ -141,3 +141,25 @@ details .sec.empty h2 { font-size: 16px; }
 }
 .foot button { border: 1px solid var(--line); background: var(--bg2); border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 13px; }
 #app.busy { opacity: .6; pointer-events: none; }
+
+/* 지도 */
+.home { display: flex; flex-direction: column; }
+@media (min-width: 900px) { .home .stats { order: -2; } #map-slot { order: -1; } }
+.map { margin: 12px 0 8px; }
+.map-regions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.map-regions button { border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+.map-regions button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.map-box { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #eef2f5; min-height: 220px; }
+.map-wait { padding: 16px; margin: 0; }
+.map-svg { display: block; width: 100%; height: auto; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.land { fill: #dde1e5; stroke: #fff; stroke-width: .6; }
+.pin { fill: #8a8a8a; stroke: #fff; stroke-width: 1.5; }
+.pin.has { fill: var(--hot); }
+.pin-label { font-size: 12.5px; font-weight: 600; fill: #222; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
+.map-legend { font-size: 13px; color: var(--muted); margin: 6px 0; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #8a8a8a; vertical-align: middle; margin-left: 6px; }
+.dot.has { background: var(--hot); margin-left: 0; }
+.map-card { list-style: none; margin: 8px 0; padding: 4px 14px; border: 1px solid var(--line); border-radius: 14px; }
+.map-card li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.map-card li:last-child { border-bottom: 0; }
+.map-card .sub { display: block; font-size: 13px; color: var(--muted); }

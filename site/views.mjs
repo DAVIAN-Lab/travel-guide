@@ -123,7 +123,14 @@ function home(site) {
     <ul class="home-list">${site.countries.map((c) => html`<li><a href="${pageHref(c.entry.id)}">${c.entry.ko}</a>:
       ${c.cities.map((ct, i) => html`${i ? ' · ' : ''}<a href="${pageHref(ct.entry.id)}" class="${ct.doc?.tags.length ? 'has' : ''}">${ct.entry.ko}</a>`)}</li>`)}</ul>
   </section>`;
-  return { title: '', main, opts: { tab: 'home' } };
+  // 지도는 글이 그려진 다음에 불러온다 (폰에서 글 먼저).
+  const mount = (root) => {
+    const slot = root.querySelector('#map-slot');
+    setTimeout(() => import('./map.mjs').then((m) => m.mountMap(slot, site)).catch((e) => {
+      slot.innerHTML = str(html`<p class="muted">지도를 불러오지 못했습니다 (${e.message}).</p>`);
+    }), 0);
+  };
+  return { title: '', main, mount, opts: { tab: 'home' } };
 }
 
 // ---------- 문서 (도시·국가·공통 팁) ----------
