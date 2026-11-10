@@ -12,7 +12,7 @@ DAVIAN Lab이 학회 출장과 여행에서 얻은 정보를 쌓아 두는 가�
 
 ## 어디서부터 보면 되나
 
-- **공통 팁** (항공권/공항/항공사/짐/비자/통신/정산/학회 준비/안전): [general.md](general.md)
+- **공통 팁** (항공권/공항/항공사/짐/비자/통신/정산/학회 준비/안전/숙소·식당): [general.md](general.md)
 - **국가·도시별 가이드**: [countries/README.md](countries/README.md)
 - **새 도시·국가 추가**: [templates/](templates/)의 파일을 복사해서 시작한다.
 - **AI 에이전트 운영 매뉴얼**: [AGENTS.md](AGENTS.md)
